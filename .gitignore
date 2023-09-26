@@ -1,0 +1,5 @@
+build
+jpm_tree/**
+.clj-kondo
+.lsp
+.vscode

@@ -1,12 +1,11 @@
 (declare-project
-  :name "janet-language-server"
-  :description "Language Server for the Janet Programming Language"
-  :version "0.0.0"
-  :dependencies [
-    "https://github.com/janet-lang/spork.git"
-  ])
+  :name "janet-lsp"
+  :description "A Language Server (LSP) for the Janet Programming Language"
+  :version "0.0.1"
+  :dependencies ["https://github.com/janet-lang/spork.git"
+                 "https://github.com/ianthehenry/judge.git"])
 
 (declare-executable
-  :name "janet-language-server"
+  :name "janet-lsp"
   :entry "src/main.janet"
   :install true)

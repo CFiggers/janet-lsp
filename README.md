@@ -4,7 +4,7 @@ A Language Server (LSP) for the Janet programming language.
 
 # Overview
 
-The goal of this project is to provide an augmented tooling experience for [Janet](https://janet-lang.org), via a self-contained, [Language Server Protocol](https://microsoft.github.io/language-server-protocol/)-compliant language server (which is itself implemented in Janet!).
+The goal of this project is to provide an augmented editor/tooling experience for [Janet](https://janet-lang.org), via a self-contained, [Language Server Protocol](https://microsoft.github.io/language-server-protocol/)-compliant language server (which is itself implemented in Janet!).
 
 Current features include:
 - [x] Partial auto-completion based on defined symbols

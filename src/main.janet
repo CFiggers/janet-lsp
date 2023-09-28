@@ -2,6 +2,7 @@
 (import spork/json :as json)
 (import ./eval)
 (import ./lookup)
+(import ./doc)
 
 (use judge)
 
@@ -70,21 +71,11 @@
         content (get-in state [:documents uri :content])
         {"line" line "character" character} (get params "position")
         {:word hover-word  :range [start end]} (lookup/word-at {:line line :character character} content)
-        hover-text (let [buf @""
-                         _ (with-dyns [:out buf]
-                             (doc* (symbol hover-word)))]
-                     (if (peg/match '(* "symbol" (thru "not found.")) buf)
-                       nil
-                       (as-> buf b
-                         (string/split "\n" b)
-                         (array/slice b 2 -3)
-                         (map string/trim b)
-                         (string/join b "\n"))))]
+        hover-text (doc/my-doc* (symbol hover-word))]
     [:ok state (match hover-word
                  nil {}
                  _ {:contents {:kind "markdown"
-                               :value hover-text
-                               :language "markdown"}
+                               :value hover-text}
                     :range {:start {:line line :character start}
                             :end {:line line :character end}}})]))
 

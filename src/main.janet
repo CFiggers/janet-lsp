@@ -1,10 +1,16 @@
-(import ./rpc)
 (import spork/json :as json)
+(import spork/path :as path)
+(import ./rpc)
 (import ./eval)
 (import ./lookup)
 (import ./doc)
 
 (use judge)
+
+(def jpm-defs   (require "../libs/jpm-defs"))
+
+(eachk k jpm-defs
+  (match (type k) :symbol (put-in jpm-defs [k :source-map] nil) nil))
 
 (defn parse-content-length [input]
   (scan-number (string/trim ((string/split ":" input) 1))))
@@ -31,7 +37,7 @@
     [:ok state {}]))
 
 
-(defn on-document-diagnostic [state params]
+(defn on-document-diagnostic [state params] 
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
         items @[]]
@@ -41,8 +47,8 @@
       [:error {:location [line col] :message message}]
       (array/push items
                   {:range
-                   {:start {:line line :character col}
-                    :end   {:line line :character col}}
+                   {:start {:line (max 0 (dec line)) :character col}
+                    :end   {:line (max 0 (dec line)) :character col}}
                    :message message}))
 
     [:ok state {:kind "full"
@@ -141,14 +147,59 @@
   (let [message (read-message)]
     (match (handle-message message state)
       [:ok new-state response] (do
-                                 (pp "new-state:")
-                                 (pp new-state)
                                  (write-response stdout (rpc/success-response (get message "id") response))
                                  (message-loop state))
 
       [:error new-state error] (pp "unhandled error response"))))
 
+(defn find-all-janet-files [path &opt explicit results]
+  (default explicit true)
+  (default results @[])
+  (let [basename |(last (string/split "/" $))]
+    (case (os/stat path :mode)
+      :directory
+      (when (or explicit (not= (basename path) "jpm_tree"))
+        (each entry (os/dir path)
+          (find-all-janet-files (string path "/" entry) false results)))
+      :file
+      (when (or explicit (not= (basename path) "project.janet"))
+        (if (string/has-suffix? ".janet" path) (array/push results path)))
+      nil (array/push results [(string/format "could not read %q" path)]))
+    results))
+
+(deftest "test find-all-janet-files"
+  (test (find-all-janet-files (os/cwd))
+    @["/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/main.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/rpc.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/logging.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/lookup.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/doc.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/eval.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jpm-defs.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/basic.janet"]))
+
+(defn find-unique-paths [paths]
+  (->> (seq [found-path :in paths]
+        (path/join (path/dirname found-path)
+                   (string ":all:" (path/ext found-path)))) 
+       distinct 
+       (map |((case (os/which) 
+                    :linux path/posix/relpath
+                    :windows path/win32/relpath) (os/cwd) $))))
+
+(deftest "test find-unique-paths"
+  (test (find-unique-paths (find-all-janet-files (os/cwd)))
+    @["janet-lsp/src/:all:.janet"
+      "janet-lsp/libs/:all:.janet"
+      "janet-lsp/test/:all:.janet"]))
+
 (defn main [args &]
   (setdyn :out stderr)
+
+  (merge-module (curenv) jpm-defs) 
+  
+  (each path (find-unique-paths (find-all-janet-files (os/cwd)))
+    (array/push module/paths [path :source]))
+
   (let [state (init-state)]
     (message-loop state)))

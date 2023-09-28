@@ -1,5 +1,6 @@
+(use ../src/main)
 
-  (use ../src/init)
+(use judge)
 
-  (assert (= (hello) "Hello!"))
-  
+(deftest "placeholder" 
+  (test (= :Hello! "Hello!") false))

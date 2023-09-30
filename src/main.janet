@@ -7,7 +7,7 @@
 
 (use judge)
 
-(def jpm-defs   (require "../libs/jpm-defs"))
+(def jpm-defs (require "../libs/jpm-defs"))
 
 (eachk k jpm-defs
   (match (type k) :symbol (put-in jpm-defs [k :source-map] nil) nil))

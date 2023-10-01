@@ -34,7 +34,7 @@
     
     (pp (eval/eval-buffer content))
 
-    [:ok state {}]))
+    [:noresponse]))
 
 
 (defn on-document-diagnostic [state params] 
@@ -60,7 +60,7 @@
 
   (put-in state [:documents uri] @{:content content}))
 
-  [:ok state {}])
+  [:noresponse])
 
 (defn on-completion [state params]
   [:ok state {:isIncomplete true
@@ -97,7 +97,9 @@
                                                 }
                              :diagnosticProvider {:interFileDependencies true
                                                   :workspaceDiagnostics false}
-                             :hoverProvider true}}])
+                             :hoverProvider true}
+              :serverInfo {:name "janet-lsp"
+                           :version "0.0.1"}}])
 
 (defn handle-message [message state]
   (let [id (get message "id") 
@@ -105,14 +107,14 @@
         params (get message "params")]
     (case method
       "initialize" (on-initialize state params)
-      "initialized" [:ok state {}]
+      "initialized" [:noresponse]
       "textDocument/didOpen" (on-document-open state params)
       "textDocument/didChange" (on-document-change state params)
       "textDocument/completion" (on-completion state params)
       "completionItem/resolve" (on-completion-item-resolve state params)
       "textDocument/diagnostic" (on-document-diagnostic state params)
       "textDocument/hover" (on-document-hover state params)
-      [:ok state {}])))
+      [:noresponse])))
 
 (defn line-ending []
   (case (os/which)
@@ -149,6 +151,7 @@
       [:ok new-state response] (do
                                  (write-response stdout (rpc/success-response (get message "id") response))
                                  (message-loop state))
+      [:noresponse] (message-loop state)
 
       [:error new-state error] (pp "unhandled error response"))))
 

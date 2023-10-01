@@ -10,7 +10,7 @@
     (array? src) (all no-side-effects src)
     (dictionary? src) (and (all no-side-effects (keys src))
                            (all no-side-effects (values src)))
-    true)) 
+    true))
 
 (defn- is-safe-def [x]
   (no-side-effects (last x)))

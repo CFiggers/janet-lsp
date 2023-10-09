@@ -11,7 +11,7 @@
         d (x :doc)]
     (string bind-type
             (when-let [[path line col] sm]
-              (string "\\\n" path
+              (string "  \n" path
                       (when line (string " on line " line))
                       (when col (string ", column " col))))
             "\n\n"

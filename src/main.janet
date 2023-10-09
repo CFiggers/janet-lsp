@@ -188,13 +188,14 @@
        distinct 
        (map |((case (os/which) 
                     :linux path/posix/relpath
-                    :windows path/win32/relpath) (os/cwd) $))))
+                    :windows path/win32/relpath) (os/cwd) $))
+       (map |(string "./" $))))
 
 (deftest "test find-unique-paths"
   (test (find-unique-paths (find-all-janet-files (os/cwd)))
-    @["janet-lsp/src/:all:.janet"
-      "janet-lsp/libs/:all:.janet"
-      "janet-lsp/test/:all:.janet"]))
+    @["./janet-lsp/src/:all:.janet"
+      "./janet-lsp/libs/:all:.janet"
+      "./janet-lsp/test/:all:.janet"]))
 
 (defn main [args &]
   (setdyn :out stderr)
@@ -202,7 +203,9 @@
   (merge-module (curenv) jpm-defs) 
   
   (each path (find-unique-paths (find-all-janet-files (os/cwd)))
-    (array/push module/paths [path :source]))
+    (array/push module/paths [path :source])
+    (array/push module/paths [path :native])
+    (array/push module/paths [path :jimage]))
 
   (let [state (init-state)]
     (message-loop state)))

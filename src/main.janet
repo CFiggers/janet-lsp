@@ -166,8 +166,7 @@
           (find-all-janet-files (string path "/" entry) false results)))
       :file
       (when (or explicit (not= (basename path) "project.janet"))
-        (if (string/has-suffix? ".janet" path) (array/push results path)))
-      nil (array/push results [(string/format "could not read %q" path)]))
+        (if (string/has-suffix? ".janet" path) (array/push results path))))
     results))
 
 (deftest "test find-all-janet-files"

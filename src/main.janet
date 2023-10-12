@@ -101,6 +101,23 @@
               :serverInfo {:name "janet-lsp"
                            :version "0.0.1"}}])
 
+(defn on-shutdown 
+  ``
+  Called by the LSP client to request that the server shut down.
+  ``
+  [state params]
+  (setdyn :shutdown-received true)
+  [:ok state nil])
+
+(defn on-exit 
+  ``
+  Called by the LSP client to request that the server process exit.
+  ``
+  [state params]
+  (unless (dyn :shutdown-received)
+    (quit 1))
+  [:exit])
+
 (defn handle-message [message state]
   (let [id (get message "id") 
         method (get message "method")
@@ -114,6 +131,8 @@
       "completionItem/resolve" (on-completion-item-resolve state params)
       "textDocument/diagnostic" (on-document-diagnostic state params)
       "textDocument/hover" (on-document-hover state params)
+      "shutdown" (on-shutdown state params)
+      "exit" (on-exit state params)
       [:noresponse])))
 
 (defn line-ending []
@@ -153,7 +172,8 @@
                                  (message-loop state))
       [:noresponse] (message-loop state)
 
-      [:error new-state error] (pp "unhandled error response"))))
+      [:error new-state error] (pp "unhandled error response")
+      [:exit] nil)))
 
 (defn find-all-janet-files [path &opt explicit results]
   (default explicit true)

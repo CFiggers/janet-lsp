@@ -115,6 +115,7 @@
   ``
   [state params]
   (unless (dyn :shutdown-received)
+    (ev/sleep 2)
     (quit 1))
   [:exit])
 
@@ -173,7 +174,7 @@
       [:noresponse] (message-loop state)
 
       [:error new-state error] (pp "unhandled error response")
-      [:exit] nil)))
+      [:exit] (do (file/flush stdout) (ev/sleep 2) nil))))
 
 (defn find-all-janet-files [path &opt explicit results]
   (default explicit true)

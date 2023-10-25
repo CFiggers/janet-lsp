@@ -1,9 +1,11 @@
-(import spork/json :as json)
+(import ../libs/jayson :prefix "json/")
+# (import spork/json)
 (import spork/path :as path)
 (import ./rpc)
 (import ./eval)
 (import ./lookup)
 (import ./doc)
+(import ./logging)
 
 (use judge)
 
@@ -90,7 +92,7 @@
   Called by the LSP client to recieve a list of capabilities
   that this server provides so the client knows what it can request.
   ``
-  [state params]
+  [state params] 
   [:ok state {:capabilities {:completionProvider {:resolveProvider true}
                              :textDocumentSync {:openClose true
                                                 :change 1 # send the Full document https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentSyncKind
@@ -107,7 +109,7 @@
   ``
   [state params]
   (setdyn :shutdown-received true)
-  [:ok state nil])
+  [:ok state :json/null])
 
 (defn on-exit 
   ``
@@ -163,6 +165,7 @@
   (let [input (file/read stdin :line)
         content-length (+ (parse-content-length input) (read-offset))
         input (file/read stdin content-length)]
+    # (print "spork/json and jayson are identical: " (deep= (json/decode input) (jayson/decode input)))
     (json/decode input)))
 
 (defn message-loop [state]

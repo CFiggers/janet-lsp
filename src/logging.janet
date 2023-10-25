@@ -6,4 +6,5 @@
   (file/close (dyn :logfile)))
 
 (defn log [output]
+  (spit "janetlsp.log.txt" (string output) :a)
   (file/write stderr (string output "\n")))

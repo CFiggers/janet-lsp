@@ -1,6 +1,7 @@
 (import ../libs/jayson :prefix "json/")
 # (import spork/json)
 (import spork/path :as path)
+(import spork/argparse)
 (import ./rpc)
 (import ./eval)
 (import ./lookup)
@@ -179,22 +180,24 @@
       [:error new-state error] (pp "unhandled error response")
       [:exit] (do (file/flush stdout) (ev/sleep 2) nil))))
 
-(defn find-all-janet-files [path &opt explicit results]
+(defn find-all-module-files [path &opt search-jpm-tree explicit results]
   (default explicit true)
   (default results @[])
   (let [basename |(last (string/split "/" $))]
     (case (os/stat path :mode)
       :directory
-      (when (or explicit (not= (basename path) "jpm_tree"))
+      (when (or explicit search-jpm-tree (not= (basename path) "jpm_tree"))
         (each entry (os/dir path)
-          (find-all-janet-files (string path "/" entry) false results)))
+          (find-all-module-files (string path "/" entry) search-jpm-tree false results)))
       :file
       (when (or explicit (not= (basename path) "project.janet"))
-        (if (string/has-suffix? ".janet" path) (array/push results path))))
+        (when (or (string/has-suffix? ".janet"  path)
+                  (string/has-suffix? ".jimage" path)
+                  (string/has-suffix? ".so"     path)) (array/push results path))))
     results))
 
-(deftest "test find-all-janet-files"
-  (test (find-all-janet-files (os/cwd))
+(deftest "test find-all-module-files"
+  (test (find-all-module-files (os/cwd))
     @["/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/main.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/rpc.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/logging.janet"
@@ -202,12 +205,32 @@
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/doc.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/eval.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jpm-defs.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/basic.janet"]))
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jayson.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/basic.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/build/janet-lsp.jimage"]))
+
+(deftest "test find-all-module-files"
+  (test (find-all-module-files (os/cwd) true)
+    @["/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/main.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/rpc.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/logging.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/lookup.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/doc.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/eval.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jpm-defs.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jayson.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/basic.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/build/janet-lsp.jimage"]))
 
 (defn find-unique-paths [paths]
   (->> (seq [found-path :in paths]
-        (path/join (path/dirname found-path)
-                   (string ":all:" (path/ext found-path)))) 
+         (if (= (path/basename found-path) "init.janet")
+          [(path/join (path/dirname found-path)
+                        (string ":all:" (path/ext found-path)))
+           (path/join (path/dirname found-path) "init.janet")]
+          [(path/join (path/dirname found-path)
+                        (string ":all:" (path/ext found-path)))]))
+       flatten
        distinct 
        (map |((case (os/which) 
                     :linux path/posix/relpath
@@ -215,20 +238,40 @@
        (map |(string "./" $))))
 
 (deftest "test find-unique-paths"
-  (test (find-unique-paths (find-all-janet-files (os/cwd)))
-    @["./janet-lsp/src/:all:.janet"
-      "./janet-lsp/libs/:all:.janet"
-      "./janet-lsp/test/:all:.janet"]))
+  (test (find-unique-paths (find-all-module-files (os/cwd)))
+    @["./src/:all:.janet"
+      "./libs/:all:.janet"
+      "./test/:all:.janet"
+      "./build/:all:.jimage"]))
 
-(defn main [args &]
-  (setdyn :out stderr)
+(deftest "test find-unique-paths"
+  (test (find-unique-paths (find-all-module-files (os/cwd) true))
+    @["./src/:all:.janet"
+      "./libs/:all:.janet"
+      "./test/:all:.janet"
+      "./build/:all:.jimage"]))
+
+(def argparse-params
+  ["A Language Server Protocol (LSP)-compliant language server implemented in Janet."
+   "search-jpm-tree" {:kind :flag
+                      :short "j"
+                      :default true
+                      :help "Whether to search `jpm_tree` for modules. Defaults to `true`."}
+   "stdio" {:kind :flag
+            :help "Whether to respond to stdio"}])
+
+(defn main [name & args]
+  (setdyn :out stderr) 
+  (def cli-args (argparse/argparse ;argparse-params))
+  (pp cli-args)
 
   (merge-module (curenv) jpm-defs) 
   
-  (each path (find-unique-paths (find-all-janet-files (os/cwd)))
-    (array/push module/paths [path :source])
-    (array/push module/paths [path :native])
-    (array/push module/paths [path :jimage]))
+  (each path (find-unique-paths (find-all-module-files (os/cwd) :search-jpm-tree (cli-args "search-jpm-tree")))
+    (cond 
+      (string/has-suffix? ".janet" path) (do (array/push module/paths [path :source]))
+      (string/has-suffix? ".so" path) (array/push module/paths [path :native])
+      (string/has-suffix? ".jimage" path) (array/push module/paths [path :jimage])))
 
   (let [state (init-state)]
     (message-loop state)))

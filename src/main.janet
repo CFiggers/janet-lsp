@@ -182,19 +182,20 @@
 
 (defn find-all-module-files [path &opt search-jpm-tree explicit results]
   (default explicit true)
-  (default results @[])
-  (let [basename |(last (string/split "/" $))]
-    (case (os/stat path :mode)
-      :directory
-      (when (or explicit search-jpm-tree (not= (basename path) "jpm_tree"))
-        (each entry (os/dir path)
-          (find-all-module-files (string path "/" entry) search-jpm-tree false results)))
-      :file
-      (when (or explicit (not= (basename path) "project.janet"))
-        (when (or (string/has-suffix? ".janet"  path)
-                  (string/has-suffix? ".jimage" path)
-                  (string/has-suffix? ".so"     path)) (array/push results path))))
-    results))
+  (default results @[]) 
+  (case (os/stat path :mode)
+    :directory (when (or explicit
+                         search-jpm-tree
+                         (not= (path/basename path) "jpm_tree"))
+                 (each entry (os/dir path)
+                   (find-all-module-files (path/join path entry)
+                                          search-jpm-tree false results)))
+    :file      (when (or explicit (not= (path/basename path) "project.janet"))
+                 (when (or (string/has-suffix? ".janet"  path)
+                           (string/has-suffix? ".jimage" path)
+                           (string/has-suffix? ".so"     path))
+                   (array/push results path))))
+  results)
 
 (deftest "test find-all-module-files"
   (test (find-all-module-files (os/cwd))
@@ -253,10 +254,9 @@
 
 (def argparse-params
   ["A Language Server Protocol (LSP)-compliant language server implemented in Janet."
-   "search-jpm-tree" {:kind :flag
-                      :short "j"
-                      :default true
-                      :help "Whether to search `jpm_tree` for modules. Defaults to `true`."}
+   "dont-search-jpm-tree" {:kind :flag
+                           :short "j"
+                           :help "Whether to search `jpm_tree` for modules."}
    "stdio" {:kind :flag
             :help "Whether to respond to stdio"}])
 
@@ -267,7 +267,7 @@
 
   (merge-module (curenv) jpm-defs) 
   
-  (each path (find-unique-paths (find-all-module-files (os/cwd) :search-jpm-tree (cli-args "search-jpm-tree")))
+  (each path (find-unique-paths (find-all-module-files (os/cwd) (not (cli-args "dont-search-jpm-tree"))))
     (cond 
       (string/has-suffix? ".janet" path) (do (array/push module/paths [path :source]))
       (string/has-suffix? ".so" path) (array/push module/paths [path :native])

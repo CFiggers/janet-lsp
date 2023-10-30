@@ -272,6 +272,9 @@
       (string/has-suffix? ".janet" path) (do (array/push module/paths [path :source]))
       (string/has-suffix? ".so" path) (array/push module/paths [path :native])
       (string/has-suffix? ".jimage" path) (array/push module/paths [path :jimage])))
+  
+  (when (os/stat "./.janet-lsp/startup.janet") 
+    (dofile "./.janet-lsp/startup.janet"))
 
   (let [state (init-state)]
     (message-loop state)))

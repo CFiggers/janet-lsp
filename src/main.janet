@@ -233,9 +233,7 @@
                         (string ":all:" (path/ext found-path)))]))
        flatten
        distinct 
-       (map |((case (os/which) 
-                    :linux path/posix/relpath
-                    :windows path/win32/relpath) (os/cwd) $))
+       (map |(path/relpath (os/cwd) $))
        (map |(string "./" $))))
 
 (deftest "test find-unique-paths"
@@ -263,7 +261,6 @@
 (defn main [name & args]
   (setdyn :out stderr) 
   (def cli-args (argparse/argparse ;argparse-params))
-  (pp cli-args)
 
   (merge-module (curenv) jpm-defs) 
   

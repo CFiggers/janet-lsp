@@ -65,9 +65,23 @@
 
   [:noresponse])
 
+(defn binding-type
+    [x]
+    (case (type (eval x))
+        :symbol 12
+        :function 3
+        :cfunction 3
+        :string 6
+        :number 6))
+
+(defn binding-to-lsp-item
+    "Takes a binding and returns a CompletionItem"
+    [name]
+    {:label name :kind (binding-type name)})
+
 (defn on-completion [state params]
   [:ok state {:isIncomplete true
-              :items (map (fn [x] {:label x}) (all-bindings))}])
+              :items (map binding-to-lsp-item (all-bindings))}])
 
 (defn on-completion-item-resolve [state params]
   (let [label (get params "label")]

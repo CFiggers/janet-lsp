@@ -121,7 +121,7 @@
   (let [label (get params "label")]
     [:ok state {:label label
                 :documentation {:kind "markdown"
-                                :value (get (dyn (symbol label)) :doc)}}]))
+                                :value (doc/my-doc* (symbol label))}}]))
 
 (defn on-document-hover [state params]
   (let [uri (get-in params ["textDocument" "uri"])

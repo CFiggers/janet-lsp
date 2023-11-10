@@ -68,11 +68,14 @@
 (defn binding-type
     [x]
     (case (type (eval x))
-        :symbol 12
-        :function 3
-        :cfunction 3
-        :string 6
-        :number 6))
+      :symbol    12  :boolean   6
+      :function  3   :cfunction 3
+      :string    6   :buffer    6
+      :number    6   :keyword   6
+      :core/file 17  :core/peg  6
+      :struct    6   :table     6
+      :tuple     6   :array     6
+      :fiber     6   :nil       6))
 
 (defn binding-to-lsp-item
     "Takes a binding and returns a CompletionItem"

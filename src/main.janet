@@ -65,9 +65,57 @@
 
   [:noresponse])
 
+(defn binding-type
+    [x]
+    (case (type (eval x))
+      :symbol    12  :boolean   6
+      :function  3   :cfunction 3
+      :string    6   :buffer    6
+      :number    6   :keyword   6
+      :core/file 17  :core/peg  6
+      :struct    6   :table     6
+      :tuple     6   :array     6
+      :fiber     6   :nil       6))
+
+(defn binding-to-lsp-item
+    "Takes a binding and returns a CompletionItem"
+    [name]
+    {:label name :kind (binding-type name)})
+
+(deftest "test binding-to-lsp-item"
+  (defglobal 'anil nil)
+  (defglobal 'hello 'world)
+  (defglobal 'atuple [:a 1])
+
+  (def test-cases @[['hello :symbol] [true :boolean] [% :function]
+                    [abstract? :cfunction] ["Hello world" :string]
+                    [@"Hello world":buffer] [123 :number]
+                    [:keyword :keyword] [stderr :core/file]
+                    [(peg/compile 1) :core/peg] [{:a 1} :struct]
+                    [@{:a 1} :table] ['atuple :tuple]
+                    [@[:a 1]:array] # [(coro) :fiber]
+                    ['anil :nil]])
+
+  (test (map (juxt 1 |(binding-to-lsp-item (first $))) test-cases)
+    @[[:symbol    {:kind 12 :label hello}]
+      [:boolean   {:kind 6  :label true}]
+      [:function  {:kind 3  :label @%}]
+      [:cfunction {:kind 3  :label @abstract?}]
+      [:string    {:kind 6  :label "Hello world"}]
+      [:buffer    {:kind 6  :label @"Hello world"}]
+      [:number    {:kind 6  :label 123}]
+      [:keyword   {:kind 6  :label :keyword}]
+      [:core/file {:kind 17 :label "<core/file 0x1>"}]
+      [:core/peg  {:kind 6  :label "<core/peg 0x2>"}]
+      [:struct    {:kind 6  :label {:a 1}}]
+      [:table     {:kind 6  :label @{:a 1}}]
+      [:tuple     {:kind 6  :label atuple}]
+      [:array     {:kind 6  :label @[:a 1]}]
+      [:nil       {:kind 6  :label anil}]]))
+
 (defn on-completion [state params]
   [:ok state {:isIncomplete true
-              :items (map (fn [x] {:label x}) (all-bindings))}])
+              :items (map binding-to-lsp-item (all-bindings))}])
 
 (defn on-completion-item-resolve [state params]
   (let [label (get params "label")]

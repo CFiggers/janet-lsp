@@ -1,6 +1,6 @@
 (use judge)
 
-(defn- no-side-effects # This seems to always only return true no matter what?
+(defn- no-side-effects
   `Check if form may have side effects. If returns true, then the src
   must not have side effects, such as calling a C function.`
   [src]

@@ -83,9 +83,13 @@
     {:label name :kind (binding-type name)})
 
 (deftest "test binding-to-lsp-item"
-  (defglobal 'anil nil)
-  (defglobal 'hello 'world)
-  (defglobal 'atuple [:a 1])
+  (setdyn :eval-env (table/proto-flatten (make-env root-env)))
+  
+  (def bind-fiber (fiber/new |(do (defglobal "anil" nil)
+                                  (defglobal "hello" 'world)
+                                  (defglobal "atuple" [:a 1])
+                                  true) :e (dyn :eval-env)))
+  (def bf-return (resume bind-fiber))
 
   (def test-cases @[['hello :symbol] [true :boolean] [% :function]
                     [abstract? :cfunction] ["Hello world" :string]
@@ -115,20 +119,20 @@
 
 (defn on-completion [state params]
   [:ok state {:isIncomplete true
-              :items (map binding-to-lsp-item (all-bindings))}])
+              :items (seq [bind :in (all-bindings (dyn :eval-env))] (binding-to-lsp-item bind))}])
 
 (defn on-completion-item-resolve [state params]
   (let [label (get params "label")]
     [:ok state {:label label
                 :documentation {:kind "markdown"
-                                :value (doc/my-doc* (symbol label))}}]))
+                                :value (doc/my-doc* (symbol label) (dyn :eval-env))}}]))
 
 (defn on-document-hover [state params]
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
         {"line" line "character" character} (get params "position")
         {:word hover-word  :range [start end]} (lookup/word-at {:line line :character character} content)
-        hover-text (doc/my-doc* (symbol hover-word))]
+        hover-text (doc/my-doc* (symbol hover-word) (dyn :eval-env))]
     [:ok state (match hover-word
                  nil {}
                  _ {:contents {:kind "markdown"
@@ -312,16 +316,18 @@
   (spit "janetlsp.log.txt" "")
   (def cli-args (argparse/argparse ;argparse-params))
 
-  (merge-module (curenv) jpm-defs) 
-  
-  (each path (find-unique-paths (find-all-module-files (os/cwd) (not (cli-args "dont-search-jpm-tree"))))
-    (cond 
-      (string/has-suffix? ".janet" path) (do (array/push module/paths [path :source]))
-      (string/has-suffix? ".so" path) (array/push module/paths [path :native])
-      (string/has-suffix? ".jimage" path) (array/push module/paths [path :jimage])))
-  
-  (when (os/stat "./.janet-lsp/startup.janet") 
-    (dofile "./.janet-lsp/startup.janet"))
+  (setdyn :eval-env (make-env root-env))
 
-  (let [state (init-state)]
-    (message-loop state)))
+  (merge-module (dyn :eval-env) (((curenv) 'module/paths) :value))
+  (merge-module (dyn :eval-env) jpm-defs)
+
+  (each path (find-unique-paths (find-all-module-files (os/cwd) (not (cli-args "dont-search-jpm-tree"))))
+    (cond
+      (string/has-suffix? ".janet" path) (array/push (((dyn :eval-env) 'module/paths) :value) [path :source])
+      (string/has-suffix? ".so" path) (array/push (((dyn :eval-env) 'module/paths) :value) [path :native])
+      (string/has-suffix? ".jimage" path) (array/push (((dyn :eval-env) 'module/paths) :value) [path :jimage])))
+
+  (when (os/stat "./.janet-lsp/startup.janet")
+    (eval/eval-buffer (slurp "./.janet-lsp/startup.janet") "startup.janet"))
+
+  (message-loop :state @{:documents @{}}))

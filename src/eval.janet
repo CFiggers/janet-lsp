@@ -48,46 +48,53 @@
                                newtup (tuple/setmap (tuple ;source :evaluator flycheck-evaluator) l c)] 
                            ((compile newtup env where)))))))
 
-(defn eval-buffer [str]
+(defn eval-buffer [str filename]
   (var state (string str))
-  (defn chunks [buf _]
+  (defn chunks [buf parser]
     (def ret state)
     (set state nil)
     (when ret
       (buffer/push-string buf str)
       (buffer/push-string buf "\n")))
 
-  (var returnval :ok)
-
-  (try
-    (run-context {:chunks chunks
-                  :on-compile-error (fn compile-error [msg errf where line col]
-                                      (set returnval [:error {:message msg
-                                                              :location [line col]}]))
-                  :on-parse-error (fn parse-error [p x]
-                                    (set returnval [:error {:message (parser/error p)
-                                                            :location (parser/where p)}]))
-                  :evaluator flycheck-evaluator
-                  :fiber-flags :i
-                  :source :eval-buffer})
-    ([err]
-     (set returnval [:error {:message err
-                             :location [0 0]}])))
-
-  returnval)
+  (def eval-fiber
+    (fiber/new
+     |(do (var returnval :ok)
+          (try (run-context {:chunks chunks
+                             :on-compile-error (fn compile-error [msg errf where line col]
+                                                 (set returnval [:error {:message msg
+                                                                         :location [line col]}]))
+                             :on-parse-error (fn parse-error [p x]
+                                               (set returnval [:error {:message (parser/error p)
+                                                                       :location (parser/where p)}]))
+                             :evaluator flycheck-evaluator
+                             :fiber-flags :i
+                             :source filename})
+               ([err]
+                (set returnval [:error {:message err
+                                        :location [0 0]}])))
+          # (logging/log (string/format "from within fiber, returnval is: %m" returnval))
+          returnval) :e (dyn :eval-env)))
+  (def eval-fiber-return (resume eval-fiber))
+  # (logging/log (string/format "eval-fiber-return is: %m" eval-fiber-return))
+  # (logging/log (string/format "fiber last value was: %m" (fiber/last-value eval-fiber))) 
+  eval-fiber-return)
 
 # tests
 
 (deftest "test eval-buffer: (+ 2 2)"
+  (setdyn :eval-env (make-env root-env))
   (test (eval-buffer "(+ 2 2)") :ok))
 
 (deftest "test eval-buffer: (2)"
+  (setdyn :eval-env (make-env root-env))
   (test (eval-buffer "(2)")
     [:error
      {:location [1 1]
       :message "2 expects 1 argument, got 0"}]))
 
 (deftest "test eval-buffer: (+ 2 2"
+  (setdyn :eval-env (make-env root-env))
   (test (eval-buffer "(+ 2 2")
     [:error
      {:location [2 0]
@@ -95,9 +102,11 @@
 
 # check for side effects
 (deftest "test eval-buffer: (pp 42)"
+  (setdyn :eval-env (make-env root-env))
   (test (eval-buffer "(pp 42)") :ok))
 
 (deftest "test eval-buffer: ()"
+  (setdyn :eval-env (make-env root-env))
   (test (eval-buffer "()")
     [:error
      {:location [0 0]

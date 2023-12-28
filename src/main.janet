@@ -1,6 +1,6 @@
 (import ../libs/jayson :prefix "json/")
 # (import spork/json)
-(import spork/path :as path)
+(import spork/path)
 (import spork/argparse)
 (import ./rpc)
 (import ./eval)
@@ -35,9 +35,9 @@
 
     (put-in state [:documents uri] @{:content content})
     
-    (pp (eval/eval-buffer content))
+    (pp (eval/eval-buffer content (path/basename uri)))
 
-    [:noresponse]))
+    [:noresponse state]))
 
 
 (defn on-document-diagnostic [state params] 
@@ -45,7 +45,7 @@
         content (get-in state [:documents uri :content])
         items @[]]
 
-    (match (eval/eval-buffer content)
+    (match (eval/eval-buffer content (path/basename uri))
       :ok ()
       [:error {:location [line col] :message message}]
       (array/push items
@@ -63,11 +63,11 @@
 
   (put-in state [:documents uri] @{:content content}))
 
-  [:noresponse])
+  [:noresponse state])
 
-(defn binding-type
-    [x]
-    (case (type (eval x))
+(defn binding-type [x] 
+  (let [s (get ((dyn :eval-env) x) :value x)]
+    (case (type s)
       :symbol    12  :boolean   6
       :function  3   :cfunction 3
       :string    6   :buffer    6
@@ -75,7 +75,7 @@
       :core/file 17  :core/peg  6
       :struct    6   :table     6
       :tuple     6   :array     6
-      :fiber     6   :nil       6))
+      :fiber     6   :nil       6)))
 
 (defn binding-to-lsp-item
     "Takes a binding and returns a CompletionItem"
@@ -115,7 +115,7 @@
       [:table     {:kind 6  :label @{:a 1}}]
       [:tuple     {:kind 6  :label atuple}]
       [:array     {:kind 6  :label @[:a 1]}]
-      [:nil       {:kind 6  :label anil}]]))
+      [:nil       {:kind 12 :label anil}]]))
 
 (defn on-completion [state params]
   [:ok state {:isIncomplete true
@@ -181,16 +181,17 @@
     (logging/log (string/format "handle-message received method request: %m" method))
     (case method
       "initialize" (on-initialize state params)
-      "initialized" [:noresponse]
+      "initialized" [:noresponse state]
       "textDocument/didOpen" (on-document-open state params)
       "textDocument/didChange" (on-document-change state params)
       "textDocument/completion" (on-completion state params)
       "completionItem/resolve" (on-completion-item-resolve state params)
       "textDocument/diagnostic" (on-document-diagnostic state params)
       "textDocument/hover" (on-document-hover state params)
+      "textDocument/signatureHelp" (on-signature-help state params)
       "shutdown" (on-shutdown state params)
       "exit" (on-exit state params)
-      [:noresponse])))
+      [:noresponse state])))
 
 (defn line-ending []
   (case (os/which)
@@ -212,9 +213,6 @@
   # Flush response
   (file/flush file))
 
-(defn init-state []
-  @{:documents @{}})
-
 (defn read-message []
   (let [input (file/read stdin :line)
         content-length (+ (parse-content-length input) (read-offset))
@@ -222,13 +220,14 @@
     # (print "spork/json and jayson are identical: " (deep= (json/decode input) (jayson/decode input)))
     (json/decode input)))
 
-(defn message-loop [state]
+(defn message-loop [&named state]
   (let [message (read-message)]
     (match (handle-message message state)
       [:ok new-state response] (do
+                                 # (logging/log (string/format "successful rpc: \n - New state: %m \n - Response: %m" new-state response))
                                  (write-response stdout (rpc/success-response (get message "id") response))
-                                 (message-loop state))
-      [:noresponse] (message-loop state)
+                                 (message-loop :state new-state))
+      [:noresponse new-state] (message-loop :state new-state)
 
       [:error new-state error] (pp "unhandled error response")
       [:exit] (do (file/flush stdout) (ev/sleep 2) nil))))
@@ -255,26 +254,32 @@
     @["/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/main.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/rpc.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/logging.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/misc.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/lookup.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/doc.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/eval.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jpm-defs.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jayson.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/basic.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/build/janet-lsp.jimage"]))
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/build/janet-lsp.jimage"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/dist/janet-lsp.jimage"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/test/syntax-highlighting.janet"]))
 
 (deftest "test find-all-module-files"
   (test (find-all-module-files (os/cwd) true)
     @["/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/main.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/rpc.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/logging.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/misc.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/lookup.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/doc.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/eval.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jpm-defs.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jayson.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/basic.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/build/janet-lsp.jimage"]))
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/build/janet-lsp.jimage"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/dist/janet-lsp.jimage"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/test/syntax-highlighting.janet"]))
 
 (defn find-unique-paths [paths]
   (->> (seq [found-path :in paths]
@@ -291,17 +296,21 @@
 
 (deftest "test find-unique-paths"
   (test (find-unique-paths (find-all-module-files (os/cwd)))
-    @["./src/:all:.janet"
-      "./libs/:all:.janet"
-      "./test/:all:.janet"
-      "./build/:all:.jimage"]))
+    @["./janet-lsp/src/:all:.janet"
+      "./janet-lsp/libs/:all:.janet"
+      "./janet-lsp/test/:all:.janet"
+      "./janet-lsp/build/:all:.jimage"
+      "./dist/:all:.jimage"
+      "./test/:all:.janet"]))
 
 (deftest "test find-unique-paths"
   (test (find-unique-paths (find-all-module-files (os/cwd) true))
-    @["./src/:all:.janet"
-      "./libs/:all:.janet"
-      "./test/:all:.janet"
-      "./build/:all:.jimage"]))
+    @["./janet-lsp/src/:all:.janet"
+      "./janet-lsp/libs/:all:.janet"
+      "./janet-lsp/test/:all:.janet"
+      "./janet-lsp/build/:all:.jimage"
+      "./dist/:all:.jimage"
+      "./test/:all:.janet"]))
 
 (def argparse-params
   ["A Language Server Protocol (LSP)-compliant language server implemented in Janet."

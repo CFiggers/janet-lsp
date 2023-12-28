@@ -1,6 +1,8 @@
 (use judge)
+(import ./logging)
 
 (defn make-module-entry [x] 
+  (comment logging/log (string/format "make-module-entry on %m" x))
   (let [bind-type (cond
                     (x :redef) (type (in (x :ref) 0))
                     (x :ref) (string :var " (" (type (in (x :ref) 0)) ")")
@@ -22,32 +24,36 @@
               "No documentation found.\n"))))
 
 (deftest "test make-module-entry: string/trim"
-  (test (make-module-entry (dyn (symbol "string/trim"))) 
-        ````
-        cfunction\
-        src/core/string.c on line 602, column 1
-        
-        ```janet
-        (string/trim str &opt set)
-        ```
-        
-        Trim leading and trailing whitespace from a byte sequence. If the argument `set` is provided, consider only characters in `set` to be whitespace.
-        ````))
+  (test-stdout (print (make-module-entry (dyn (symbol "string/trim")))) ````
+    cfunction  
+    src/core/string.c on line 602, column 1
+    
+    ```janet
+    (string/trim str &opt set)
+    ```
+    
+    Trim leading and trailing whitespace from a byte sequence. If the argument `set` is provided, consider only characters in `set` to be whitespace.
+  ````))
 
 (deftest "test make-module-entry: length"
-  (test (make-module-entry (dyn (symbol "length"))) 
-        ````
-        function
-
-        ```janet
-        (length ds)
-        ```
-        
-        Returns the length or count of a data structure in constant time as an integer. For structs and tables, returns the number of key-value pairs in the data structure.````))
+  (test-stdout (print (make-module-entry (dyn (symbol "length")))) ````
+    function
+    
+    ```janet
+    (length ds)
+    ```
+    
+    Returns the length or count of a data structure in constant time as an integer. For structs and tables, returns the number of key-value pairs in the data structure.
+  ````))
 
 (deftest "test make-module-entry: def" 
   (defglobal "test-def" :a)
-  (test (make-module-entry (dyn (symbol "test-def"))) "keyword\n\nNo documentation found.\n"))
+  (test-stdout (print (make-module-entry (dyn (symbol "test-def")))) `
+    keyword
+    
+    No documentation found.
+    
+  `))
 
 (defn make-special-form-entry
   [x]
@@ -84,44 +90,66 @@
           (print "symbol " sym " not found."))))))
 
 (deftest "testing my-doc*: string/trim"
-  (test (my-doc* 'string/trim) 
-        ````
-        cfunction\
-        src/core/string.c on line 602, column 1
-        
-        ```janet
-        (string/trim str &opt set)
-        ```
-        
-        Trim leading and trailing whitespace from a byte sequence. If the argument `set` is provided, consider only characters in `set` to be whitespace.
-        ````))
+  (setdyn :eval-env (make-env root-env))
+  (test-stdout (print (my-doc* 'string/trim (dyn :eval-env))) ````
+    cfunction  
+    src/core/string.c on line 602, column 1
+    
+    ```janet
+    (string/trim str &opt set)
+    ```
+    
+    Trim leading and trailing whitespace from a byte sequence. If the argument `set` is provided, consider only characters in `set` to be whitespace.
+  ````))
 
 (deftest "testing my-doc*: length"
-  (test (my-doc* 'length) 
-        ````
-        function
-
-        ```janet
-        (length ds)
-        ```
-        
-        Returns the length or count of a data structure in constant time as an integer. For structs and tables, returns the number of key-value pairs in the data structure.````))
+  (setdyn :eval-env (make-env root-env))
+  (test-stdout (print (my-doc* 'length (dyn :eval-env))) ````
+    function
+    
+    ```janet
+    (length ds)
+    ```
+    
+    Returns the length or count of a data structure in constant time as an integer. For structs and tables, returns the number of key-value pairs in the data structure.
+  ````))
 
 (deftest "testing my-doc*: set"
-  (test (my-doc* 'set) 
-        ````
-        special form
-        
-        (set ...)
-        
-        See https://janet-lang.org/docs/specials.html
-        ````))
+  (setdyn :eval-env (make-env root-env))
+  (test-stdout (print (my-doc* 'set (dyn :eval-env))) `
+    special form
+    
+    (set ...)
+    
+    See https://janet-lang.org/docs/specials.html
+  `))
 
-(deftest "testing my-doc*: def"
-  (defglobal "test-def" :a)
-  (test (my-doc* 'test-def) "keyword\n\nNo documentation found.\n"))
+(deftest "testing my-doc*: test-def"
+  (setdyn :eval-env (make-env root-env))
+  (test-stdout (print (my-doc* 'test-def (dyn :eval-env))) `
+    symbol test-def not found.
+    
+  `))
 
 (deftest "testing my-doc*: wackythingthatdoesntexist"
-  (test-stdout (my-doc* (symbol "wackythingthatdoesntexist")) `
+  (setdyn :eval-env (make-env root-env))
+  (test-stdout (print (my-doc* (symbol "wackythingthatdoesntexist") (dyn :eval-env))) `
     symbol wackythingthatdoesntexist not found.
+    
+  `))
+
+(deftest "testing my-doc*: module entry"
+  (setdyn :eval-env (make-env root-env))
+  (def import-fiber (fiber/new |(import spork/path) :e (dyn :eval-env)))
+  (def if-result (resume import-fiber)) 
+  (if (= :error (fiber/status import-fiber)) 
+    (error "fiber errored")
+    (merge (dyn :eval-env) (fiber/getenv import-fiber)))
+
+  (test-stdout (print (my-doc* (symbol "spork/path") (dyn :eval-env))) `
+    module (source)  
+    /usr/local/lib/janet/spork/path.janet
+    
+    No documentation found.
+    
   `))

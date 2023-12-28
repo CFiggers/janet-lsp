@@ -1,10 +1,10 @@
 (defn init-logger []
   (setdyn :out stderr)
-  (setdyn :logfile (file/open "janetlslogs.txt" :w)))
+  (spit "janetlsp.log.txt" ""))
 
 (defn shutdown-logger []
   (file/close (dyn :logfile)))
 
 (defn log [output]
-  (spit "janetlsp.log.txt" (string output) :a)
+  (spit "janetlsp.log.txt" (string output "\n") :a)
   (file/write stderr (string output "\n")))

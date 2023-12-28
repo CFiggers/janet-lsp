@@ -174,6 +174,7 @@
   (let [id (get message "id") 
         method (get message "method")
         params (get message "params")]
+    (logging/log (string/format "handle-message received method request: %m" method))
     (case method
       "initialize" (on-initialize state params)
       "initialized" [:noresponse]
@@ -307,7 +308,8 @@
             :help "Whether to respond to stdio"}])
 
 (defn main [name & args]
-  (setdyn :out stderr) 
+  (setdyn :out stderr)
+  (spit "janetlsp.log.txt" "")
   (def cli-args (argparse/argparse ;argparse-params))
 
   (merge-module (curenv) jpm-defs) 

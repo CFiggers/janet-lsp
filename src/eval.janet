@@ -1,4 +1,5 @@
 (use judge)
+(import ./logging)
 
 (defn- no-side-effects
   `Check if form may have side effects. If returns true, then the src
@@ -101,3 +102,30 @@
     [:error
      {:location [0 0]
       :message "expected integer key for tuple in range [0, 0), got 0"}]))
+
+(deftest "import with no argument should give a parse error"
+  (setdyn :eval-env (make-env root-env))
+  (test (eval-buffer "(import )")
+    [:error
+     {:location [1 1]
+      :message "macro arity mismatch, expected at least 1, got 0"}]))
+
+(deftest "import with no matching module should give a parse error"
+  (setdyn :eval-env (make-env root-env))
+  (test (eval-buffer "(import randommodulethatdoesntexist)")
+    [:error
+     {:location [0 0]
+      :message "could not find module randommodulethatdoesntexist:\n    /usr/local/lib/janet/randommodulethatdoesntexist.jimage\n    /usr/local/lib/janet/randommodulethatdoesntexist.janet\n    /usr/local/lib/janet/randommodulethatdoesntexist/init.janet\n    /usr/local/lib/janet/randommodulethatdoesntexist.so"}]))
+
+(deftest "does not error because string/trim is a cfunction"
+  (setdyn :eval-env (make-env root-env))
+  (test (eval-buffer "(string/trim )") :ok))
+
+(deftest "should give a parser error 2"
+  (setdyn :eval-env (make-env root-env))
+  (test (eval-buffer "(freeze )")
+    [:error
+     {:location [1 1]
+      :message "<function freeze> expects at least 1 argument, got 0"}]))
+
+

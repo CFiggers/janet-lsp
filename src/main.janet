@@ -140,6 +140,26 @@
                     :range {:start {:line line :character start}
                             :end {:line line :character end}}})]))
 
+(defn on-signature-help [state params]
+  (comment logging/log (string "on-signature-help state: "))
+  (comment logging/log (string/format "%q" state))
+  (comment logging/log (string "on-signature-help params: "))
+  (comment logging/log (string/format "%q" params))
+  (let [uri (get-in params ["textDocument" "uri"])
+        content (get-in state [:documents uri :content])
+        {"line" line "character" character} (get params "position")
+        {:source sexp-text :range [start end]} (lookup/sexp-at {:line line :character character} content)
+        function-symbol (first (peg/match '(* "(" (any :s) (<- (to " "))) sexp-text))
+        _ (logging/log (string/format "signature help request for: %s" function-symbol))
+        # [fn-name & params] (doc/get-signature (symbol function-symbol))
+        # _ (logging/log (string/format "got fn-name: %s" fn-name))
+        # _ (logging/log (string/format "got params: %q" params))
+        signature (doc/get-signature (symbol function-symbol))
+        _ (logging/log (string/format "got signature: %s" signature))]
+    [:ok state (match signature
+                 nil :json/null
+                 _ [{:label signature}])]))
+
 (defn on-initialize 
   `` 
   Called by the LSP client to recieve a list of capabilities
@@ -152,7 +172,9 @@
                                                 }
                              :diagnosticProvider {:interFileDependencies true
                                                   :workspaceDiagnostics false}
-                             :hoverProvider true}
+                             :hoverProvider true
+                            #  :signatureHelpProvider {:triggerCharacters [" "]}
+                             }
               :serverInfo {:name "janet-lsp"
                            :version "0.0.1"}}])
 

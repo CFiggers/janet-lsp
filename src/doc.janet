@@ -71,6 +71,22 @@
         See https://janet-lang.org/docs/specials.html
         ````))
 
+(defn get-signature 
+  "Look up the signature of a symbol in a given environment."
+  [sym]
+  (logging/log (string/format "get-signature tried %m" ((dyn :eval-env) sym)))
+  (if-let [x ((dyn :eval-env) sym)]
+    (-> (string/split "\n" (x :doc))
+        (array/slice nil 1)
+        (first))
+    # (as-> (string/split "\n" (x :doc)) s
+    #     (array/slice s nil 1)
+    #     (first s)
+    #     (peg/match '(* "(" :s* (<- (to (set " )"))) (any (* :s* (<- (to (set " )"))))) :s* ")") s))
+    # (do (print "symbol " sym " not found.")
+    #     [nil])
+    (print "symbol " sym " not found.")))
+
 (defn my-doc*
   "Get the documentation for a symbol in a given environment."
   [sym env]

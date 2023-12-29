@@ -44,9 +44,13 @@
         # Use
         (= 'use head) (use-2 flycheck-evaluator (tuple/slice source 1))
         # Import-like form
-        (importers head) (let [[l c] (tuple/sourcemap source) 
-                               newtup (tuple/setmap (tuple ;source :evaluator flycheck-evaluator) l c)] 
-                           ((compile newtup env where)))))))
+        (importers head)
+        (if (or (string/has-prefix? "." (source 1))
+                (string/has-prefix? "/" (source 1)))
+          (let [[l c] (tuple/sourcemap source)
+                newtup (tuple/setmap (tuple ;source :evaluator flycheck-evaluator) l c)]
+            ((compile newtup env where)))
+          (thunk))))))
 
 (defn eval-buffer [str filename]
   (var state (string str))

@@ -1,4 +1,5 @@
 (use judge)
+(import ./logging)
 
 (defn lookup [{:line line :character character} source]
   (string/from-bytes (((string/split "\n" source) line) character)))
@@ -21,7 +22,7 @@
 (defmacro first-where [pred ds]
   (with-syms [$pred $ds]
     ~(let [,$pred ,pred ,$ds ,ds]
-       (var ret "")
+       (var ret nil)
        (for i 0 (length ,$ds)
             (when (,$pred (,$ds i))
               (set ret (,$ds i))
@@ -29,11 +30,15 @@
        ret)))
 
 (defn word-at [location source]
+  # (logging/log (string/format "word-at received location: %m" location))
+  # (logging/log (string/format "word-at received source: %m" source))
   (let [{:character character-pos :line line-pos} location
         line ((string/split "\n" source) line-pos)
         parsed (sort-by last (peg/match word-peg line))
-        word (first-where |(>= ($ 2) character-pos) parsed)]
+        word (or (first-where |(>= ($ 2) character-pos) parsed) (last parsed))]
     {:range [(word 0) (word 2)] :word (word 1)}))
+
+(test (word-at {:line 0 :character 16} "(def- parse-peg\n") {:range [6 14] :word "parse-peg"})
 
 (def sexp-peg
   (peg/compile
@@ -133,7 +138,7 @@
         sexp-range (last (filter |(<= ($ 0) idx ($ 1)) s-exps))]
     {:source (string/slice source ;sexp-range) :range sexp-range}))
 
-(test (sexp-at {:character 15 :line 2} "(def a-startup-symbol [])\n\n(import spork/argparse)"))
+(test (sexp-at {:character 15 :line 2} "(def a-startup-symbol [])\n\n(import spork/argparse)") {:range @[27 50] :source "(import spork/argparse)"})
 
 (deftest "sexp-at" 
   (def sample

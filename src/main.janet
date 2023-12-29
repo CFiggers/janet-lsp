@@ -344,7 +344,8 @@
 
 (defn main [name & args]
   (setdyn :out stderr)
-  (spit "janetlsp.log.txt" "")
+  # (setdyn :debug true)
+  (when (dyn :debug) (spit "janetlsp.log.txt" ""))
   (def cli-args (argparse/argparse ;argparse-params))
 
   (setdyn :eval-env (make-env root-env))

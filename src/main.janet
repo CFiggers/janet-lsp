@@ -173,7 +173,7 @@
                              :diagnosticProvider {:interFileDependencies true
                                                   :workspaceDiagnostics false}
                              :hoverProvider true
-                            #  :signatureHelpProvider {:triggerCharacters [" "]}
+                             :signatureHelpProvider {:triggerCharacters [" "]}
                              }
               :serverInfo {:name "janet-lsp"
                            :version "0.0.1"}}])
@@ -344,13 +344,13 @@
 
 (defn main [name & args]
   (setdyn :out stderr)
-  # (setdyn :debug true)
+  (setdyn :debug true)
   (when (dyn :debug) (spit "janetlsp.log.txt" ""))
   (def cli-args (argparse/argparse ;argparse-params))
 
   (setdyn :eval-env (make-env root-env))
 
-  (merge-module (dyn :eval-env) (((curenv) 'module/paths) :value))
+  # (merge-module (dyn :eval-env) (((curenv) 'module/paths) :value))
   (merge-module (dyn :eval-env) jpm-defs)
 
   (each path (find-unique-paths (find-all-module-files (os/cwd) (not (cli-args "dont-search-jpm-tree"))))

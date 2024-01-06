@@ -63,9 +63,9 @@
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
         new-content (freeze (fmt/format (string/slice content)))]
-    (logging/log (string/format "old content: %m" content))
-    (logging/log (string/format "new content: %m" new-content))
-    (logging/log (string/format "formatting changed something: %m" (not= content new-content)))
+    (comment logging/log (string/format "old content: %m" content))
+    (comment logging/log (string/format "new content: %m" new-content))
+    (comment logging/log (string/format "formatting changed something: %m" (not= content new-content)))
     (if (= content new-content)
       [:ok state :json/null]
       (do (put-in state [:documents uri] {:content new-content})
@@ -166,12 +166,12 @@
         {"line" line "character" character} (get params "position")
         {:source sexp-text :range [start end]} (lookup/sexp-at {:line line :character character} content)
         function-symbol (first (peg/match '(* "(" (any :s) (<- (to " "))) sexp-text))
-        _ (logging/log (string/format "signature help request for: %s" function-symbol))
+        # _ (logging/log (string/format "signature help request for: %s" function-symbol))
         # [fn-name & params] (doc/get-signature (symbol function-symbol))
         # _ (logging/log (string/format "got fn-name: %s" fn-name))
         # _ (logging/log (string/format "got params: %q" params))
         signature (doc/get-signature (symbol function-symbol))
-        _ (logging/log (string/format "got signature: %s" signature))]
+        # _ (logging/log (string/format "got signature: %s" signature))]
     [:ok state (match signature
                  nil :json/null
                  _ [{:label signature}])]))
@@ -189,7 +189,7 @@
                              :diagnosticProvider {:interFileDependencies true
                                                   :workspaceDiagnostics false}
                              :hoverProvider true
-                             :signatureHelpProvider {:triggerCharacters [" "]}
+                             #:signatureHelpProvider {:triggerCharacters [" "]}
                              :documentFormattingProvider true}
               :serverInfo {:name "janet-lsp"
                            :version version}}])
@@ -223,7 +223,7 @@
   (let [id (get message "id") 
         method (get message "method")
         params (get message "params")]
-    (logging/log (string/format "handle-message received method request: %m" method))
+    (comment logging/log (string/format "handle-message received method request: %m" method))
     (case method
       "initialize" (on-initialize state params)
       "initialized" [:noresponse state]

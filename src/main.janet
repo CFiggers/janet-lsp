@@ -171,7 +171,8 @@
         # _ (logging/log (string/format "got fn-name: %s" fn-name))
         # _ (logging/log (string/format "got params: %q" params))
         signature (doc/get-signature (symbol function-symbol))
-        # _ (logging/log (string/format "got signature: %s" signature))]
+        # _ (logging/log (string/format "got signature: %s" signature))
+        ]
     [:ok state (match signature
                  nil :json/null
                  _ [{:label signature}])]))

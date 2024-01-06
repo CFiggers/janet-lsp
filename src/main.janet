@@ -10,6 +10,8 @@
 
 (use judge)
 
+(def version "0.0.3")
+
 (def jpm-defs (require "../libs/jpm-defs"))
 
 (eachk k jpm-defs
@@ -190,7 +192,7 @@
                              :signatureHelpProvider {:triggerCharacters [" "]}
                              :documentFormattingProvider true}
               :serverInfo {:name "janet-lsp"
-                           :version "0.0.1"}}])
+                           :version version}}])
 
 (defn on-shutdown 
   ``
@@ -210,6 +212,13 @@
     (quit 1))
   [:exit])
 
+(defn on-janet-serverinfo 
+  ``
+  Called by the LSP client to request information about the server.
+  ``
+  [state params]
+  [:ok state :json/null])
+
 (defn handle-message [message state]
   (let [id (get message "id") 
         method (get message "method")
@@ -225,7 +234,7 @@
       "textDocument/diagnostic" (on-document-diagnostic state params)
       "textDocument/formatting" (on-document-formatting state params)
       "textDocument/hover" (on-document-hover state params)
-      "textDocument/signatureHelp" (on-signature-help state params)
+      "janet/serverInfo" (on-janet-serverinfo state params)
       "shutdown" (on-shutdown state params)
       "exit" (on-exit state params)
       [:noresponse state])))

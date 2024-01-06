@@ -1,7 +1,7 @@
 (declare-project
   :name "janet-lsp"
   :description "A Language Server (LSP) for the Janet Programming Language"
-  :version "0.0.2"
+  :version "0.0.3"
   :dependencies ["https://github.com/janet-lang/spork.git"
                  "https://github.com/ianthehenry/judge.git"])
 

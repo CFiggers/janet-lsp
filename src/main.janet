@@ -1,5 +1,5 @@
 (import ../libs/jayson :prefix "json/")
-# (import spork/json)
+(import ../libs/fmt)
 (import spork/path)
 (import spork/argparse)
 (import ./rpc)
@@ -56,6 +56,20 @@
 
     [:ok state {:kind "full"
                 :items items}]))
+
+(defn on-document-formatting [state params]
+  (let [uri (get-in params ["textDocument" "uri"])
+        content (get-in state [:documents uri :content])
+        new-content (freeze (fmt/format (string/slice content)))]
+    (logging/log (string/format "old content: %m" content))
+    (logging/log (string/format "new content: %m" new-content))
+    (logging/log (string/format "formatting changed something: %m" (not= content new-content)))
+    (if (= content new-content)
+      [:ok state :json/null]
+      (do (put-in state [:documents uri] {:content new-content})
+          [:ok state [{:range {:start {:line 0 :character 0}
+                               :end   {:line 1000000 :character 1000000}}
+                       :newText new-content}]]))))
 
 (defn on-document-open [state params]
   (let [content (get-in params ["textDocument" "text"])
@@ -174,7 +188,7 @@
                                                   :workspaceDiagnostics false}
                              :hoverProvider true
                              :signatureHelpProvider {:triggerCharacters [" "]}
-                             }
+                             :documentFormattingProvider true}
               :serverInfo {:name "janet-lsp"
                            :version "0.0.1"}}])
 
@@ -209,6 +223,7 @@
       "textDocument/completion" (on-completion state params)
       "completionItem/resolve" (on-completion-item-resolve state params)
       "textDocument/diagnostic" (on-document-diagnostic state params)
+      "textDocument/formatting" (on-document-formatting state params)
       "textDocument/hover" (on-document-hover state params)
       "textDocument/signatureHelp" (on-signature-help state params)
       "shutdown" (on-shutdown state params)
@@ -344,7 +359,7 @@
 
 (defn main [name & args]
   (setdyn :out stderr)
-  (setdyn :debug true)
+  # (setdyn :debug true)
   (when (dyn :debug) (spit "janetlsp.log.txt" ""))
   (def cli-args (argparse/argparse ;argparse-params))
 

@@ -156,7 +156,7 @@
                     :range {:start {:line line :character start}
                             :end {:line line :character end}}})]))
 
-(defn on-signature-help [state params]
+(defn on-document-signature-help [state params]
   (comment logging/log (string "on-signature-help state: "))
   (comment logging/log (string/format "%q" state))
   (comment logging/log (string "on-signature-help params: "))
@@ -234,6 +234,7 @@
       "textDocument/diagnostic" (on-document-diagnostic state params)
       "textDocument/formatting" (on-document-formatting state params)
       "textDocument/hover" (on-document-hover state params)
+      "textDocument/signatureHelp" (on-document-signature-help state params)
       "janet/serverInfo" (on-janet-serverinfo state params)
       "shutdown" (on-shutdown state params)
       "exit" (on-exit state params)

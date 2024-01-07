@@ -74,7 +74,7 @@
 (defn get-signature 
   "Look up the signature of a symbol in a given environment."
   [sym]
-  (logging/log (string/format "get-signature tried %m" ((dyn :eval-env) sym)))
+  (comment logging/log (string/format "get-signature tried %m" ((dyn :eval-env) sym)))
   (if-let [x ((dyn :eval-env) sym)]
     (-> (string/split "\n" (x :doc))
         (array/slice nil 1)
@@ -90,7 +90,7 @@
 (defn my-doc*
   "Get the documentation for a symbol in a given environment."
   [sym env]
-  (logging/log (string/format "my-doc* tried: %m" ((dyn :eval-env) sym)))
+  (comment logging/log (string/format "my-doc* tried: %m" ((dyn :eval-env) sym)))
   (if-let [x ((dyn :eval-env) sym)]
     (make-module-entry x)
     (if (has-value? '[break def do fn if quasiquote quote

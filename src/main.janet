@@ -1,5 +1,5 @@
 (import ../libs/jayson :prefix "json/")
-# (import spork/json)
+(import ../libs/fmt)
 (import spork/path)
 (import spork/argparse)
 (import ./rpc)
@@ -9,6 +9,8 @@
 (import ./logging)
 
 (use judge)
+
+(def version "0.0.3")
 
 (def jpm-defs (require "../libs/jpm-defs"))
 
@@ -56,6 +58,20 @@
 
     [:ok state {:kind "full"
                 :items items}]))
+
+(defn on-document-formatting [state params]
+  (let [uri (get-in params ["textDocument" "uri"])
+        content (get-in state [:documents uri :content])
+        new-content (freeze (fmt/format (string/slice content)))]
+    (comment logging/log (string/format "old content: %m" content))
+    (comment logging/log (string/format "new content: %m" new-content))
+    (comment logging/log (string/format "formatting changed something: %m" (not= content new-content)))
+    (if (= content new-content)
+      [:ok state :json/null]
+      (do (put-in state [:documents uri] {:content new-content})
+          [:ok state [{:range {:start {:line 0 :character 0}
+                               :end   {:line 1000000 :character 1000000}}
+                       :newText new-content}]]))))
 
 (defn on-document-open [state params]
   (let [content (get-in params ["textDocument" "text"])
@@ -150,12 +166,12 @@
         {"line" line "character" character} (get params "position")
         {:source sexp-text :range [start end]} (lookup/sexp-at {:line line :character character} content)
         function-symbol (first (peg/match '(* "(" (any :s) (<- (to " "))) sexp-text))
-        _ (logging/log (string/format "signature help request for: %s" function-symbol))
+        # _ (logging/log (string/format "signature help request for: %s" function-symbol))
         # [fn-name & params] (doc/get-signature (symbol function-symbol))
         # _ (logging/log (string/format "got fn-name: %s" fn-name))
         # _ (logging/log (string/format "got params: %q" params))
         signature (doc/get-signature (symbol function-symbol))
-        _ (logging/log (string/format "got signature: %s" signature))]
+        # _ (logging/log (string/format "got signature: %s" signature))]
     [:ok state (match signature
                  nil :json/null
                  _ [{:label signature}])]))
@@ -173,10 +189,10 @@
                              :diagnosticProvider {:interFileDependencies true
                                                   :workspaceDiagnostics false}
                              :hoverProvider true
-                            #  :signatureHelpProvider {:triggerCharacters [" "]}
-                             }
+                             #:signatureHelpProvider {:triggerCharacters [" "]}
+                             :documentFormattingProvider true}
               :serverInfo {:name "janet-lsp"
-                           :version "0.0.1"}}])
+                           :version version}}])
 
 (defn on-shutdown 
   ``
@@ -196,11 +212,18 @@
     (quit 1))
   [:exit])
 
+(defn on-janet-serverinfo 
+  ``
+  Called by the LSP client to request information about the server.
+  ``
+  [state params]
+  [:ok state :json/null])
+
 (defn handle-message [message state]
   (let [id (get message "id") 
         method (get message "method")
         params (get message "params")]
-    (logging/log (string/format "handle-message received method request: %m" method))
+    (comment logging/log (string/format "handle-message received method request: %m" method))
     (case method
       "initialize" (on-initialize state params)
       "initialized" [:noresponse state]
@@ -209,8 +232,9 @@
       "textDocument/completion" (on-completion state params)
       "completionItem/resolve" (on-completion-item-resolve state params)
       "textDocument/diagnostic" (on-document-diagnostic state params)
+      "textDocument/formatting" (on-document-formatting state params)
       "textDocument/hover" (on-document-hover state params)
-      "textDocument/signatureHelp" (on-signature-help state params)
+      "janet/serverInfo" (on-janet-serverinfo state params)
       "shutdown" (on-shutdown state params)
       "exit" (on-exit state params)
       [:noresponse state])))
@@ -350,7 +374,7 @@
 
   (setdyn :eval-env (make-env root-env))
 
-  (merge-module (dyn :eval-env) (((curenv) 'module/paths) :value))
+  # (merge-module (dyn :eval-env) (((curenv) 'module/paths) :value))
   (merge-module (dyn :eval-env) jpm-defs)
 
   (each path (find-unique-paths (find-all-module-files (os/cwd) (not (cli-args "dont-search-jpm-tree"))))

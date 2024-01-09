@@ -276,7 +276,7 @@
   (let [message (read-message)]
     (match (handle-message message state)
       [:ok new-state response] (do
-                                 (logging/log (string/format "successful rpc: \n - New state: %m \n - Response: %m" new-state response))
+                                 (logging/log "successful rpc")
                                  (write-response stdout (rpc/success-response (get message "id") response))
                                  (message-loop :state new-state))
       [:noresponse new-state] (message-loop :state new-state)

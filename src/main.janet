@@ -188,7 +188,7 @@
                              :diagnosticProvider {:interFileDependencies true
                                                   :workspaceDiagnostics false}
                              :hoverProvider true
-                             #:signatureHelpProvider {:triggerCharacters [" "]}
+                             :signatureHelpProvider {:triggerCharacters [" "]}
                              :documentFormattingProvider true}
               :serverInfo {:name "janet-lsp"
                            :version version}}])

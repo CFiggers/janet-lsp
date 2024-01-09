@@ -75,15 +75,10 @@
                              :fiber-flags :i
                              :source filename})
                ([err]
-                # (logging/log (string/format "%m" [:error {:message err
-                #                                           :location [0 0]}]))
                 (array/push returnval {:message err
                                        :location [0 0]})))
-          # (logging/log (string/format "from within fiber, returnval is: %m" returnval))
           returnval) :e (dyn :eval-env)))
   (def eval-fiber-return (resume eval-fiber))
-  # (logging/log (string/format "eval-fiber-return is: %m" eval-fiber-return))
-  # (logging/log (string/format "fiber last value was: %m" (fiber/last-value eval-fiber))) 
   eval-fiber-return)
 
 # tests

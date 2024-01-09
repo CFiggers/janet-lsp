@@ -63,25 +63,22 @@
 
   (def eval-fiber
     (fiber/new
-     |(do (var returnval :ok)
+     |(do (var returnval @[])
           (try (run-context {:chunks chunks
                              :on-compile-error (fn compile-error [msg errf where line col]
-                                                 (set returnval [:error {:message msg
-                                                                         :location [line col]}]))
+                                                 (array/push returnval {:message msg
+                                                                        :location [line col]}))
                              :on-parse-error (fn parse-error [p x]
-                                               (set returnval [:error {:message (parser/error p)
-                                                                       :location (parser/where p)}]))
+                                               (array/push returnval {:message (parser/error p)
+                                                                      :location (parser/where p)}))
                              :evaluator flycheck-evaluator
                              :fiber-flags :i
                              :source filename})
                ([err]
-                (set returnval [:error {:message err
-                                        :location [0 0]}])))
-          # (logging/log (string/format "from within fiber, returnval is: %m" returnval))
+                (array/push returnval {:message err
+                                       :location [0 0]})))
           returnval) :e (dyn :eval-env)))
   (def eval-fiber-return (resume eval-fiber))
-  # (logging/log (string/format "eval-fiber-return is: %m" eval-fiber-return))
-  # (logging/log (string/format "fiber last value was: %m" (fiber/last-value eval-fiber))) 
   eval-fiber-return)
 
 # tests

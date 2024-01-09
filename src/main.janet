@@ -292,9 +292,7 @@
 
   (message-loop :state @{:documents @{}}))
 
-(defn start-debug-console []
-  (setdyn :debug true)
-
+(defn start-debug-console [] 
   (def host "127.0.0.1")
   (def port (if ((dyn :opts) :port) (string ((dyn :opts) :port)) "8037"))
   
@@ -324,6 +322,7 @@
      "A Language Server (LSP) for the Janet Programming Language."
      [[--dont-search-jpm-tree -j] (flag) "Whether to search `jpm_tree` for modules."
       --stdio (flag) "Use STDIO."
+      [--debug -d] (flag) "Print debug messages."
       [--console -c] (flag) "Start a debug console instead of starting the Language Server."
       [--debug-port -p] (optional :int++) "What port to start the debug console on. Defaults to 8037."]
 
@@ -337,6 +336,7 @@
         :debug-port debug-port})
 
      (setdyn :opts opts)
+     (setdyn :debug debug)
      (setdyn :out stderr)
 
      (if console

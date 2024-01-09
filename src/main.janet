@@ -45,16 +45,17 @@
 (defn on-document-diagnostic [state params] 
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
-        items @[]]
-
-    (match (eval/eval-buffer content (path/basename uri))
-      :ok ()
-      [:error {:location [line col] :message message}]
-      (array/push items
-                  {:range
-                   {:start {:line (max 0 (dec line)) :character col}
-                    :end   {:line (max 0 (dec line)) :character col}}
-                   :message message}))
+        items @[]
+        eval-result (eval/eval-buffer content (path/basename uri))]
+ 
+    (each res eval-result
+      (match res
+        {:location [line col] :message message}
+        (array/push items
+                    {:range
+                     {:start {:line (max 0 (dec line)) :character col}
+                      :end   {:line (max 0 (dec line)) :character col}}
+                     :message message}))) 
 
     [:ok state {:kind "full"
                 :items items}]))

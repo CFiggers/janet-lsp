@@ -165,16 +165,11 @@
         content (get-in state [:documents uri :content])
         {"line" line "character" character} (get params "position")
         {:source sexp-text :range [start end]} (lookup/sexp-at {:line line :character character} content)
-        function-symbol (first (peg/match '(* "(" (any :s) (<- (to " "))) sexp-text))
-        _ (logging/log (string/format "signature help request for: %s" function-symbol))
-        # [fn-name & params] (doc/get-signature (symbol function-symbol))
-        # _ (logging/log (string/format "got fn-name: %s" fn-name))
-        # _ (logging/log (string/format "got params: %q" params))
-        signature (doc/get-signature (symbol function-symbol))
-        _ (logging/log (string/format "got signature: %s" signature))]
-    [:ok state (match signature
-                 nil :json/null
-                 _ [{:label signature}])]))
+        function-symbol (or (first (peg/match '(* "(" (any :s) (<- (to " "))) sexp-text)) "none")
+        signature (or (doc/get-signature (symbol function-symbol)) "not found")]
+    (case signature
+      "not found" [:ok state :json/null]
+      [:ok state {:signatures [{:label signature}]}])))
 
 (defn on-initialize 
   `` 

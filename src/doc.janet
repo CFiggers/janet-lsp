@@ -85,7 +85,10 @@
     #     (peg/match '(* "(" :s* (<- (to (set " )"))) (any (* :s* (<- (to (set " )"))))) :s* ")") s))
     # (do (print "symbol " sym " not found.")
     #     [nil])
-    (print "symbol " sym " not found.")))
+    (if (has-value? '[break def do fn if quasiquote quote
+                      set splice unquote upscope var while] sym)
+      (string "(" sym " ... )")
+      (print "symbol " sym " not found."))))
 
 (defn my-doc*
   "Get the documentation for a symbol in a given environment."

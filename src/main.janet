@@ -156,7 +156,7 @@
                     :range {:start {:line line :character start}
                             :end {:line line :character end}}})]))
 
-(defn on-signature-help [state params]
+(defn on-document-signature-help [state params]
   (comment logging/log (string "on-signature-help state: "))
   (comment logging/log (string/format "%q" state))
   (comment logging/log (string "on-signature-help params: "))
@@ -165,17 +165,11 @@
         content (get-in state [:documents uri :content])
         {"line" line "character" character} (get params "position")
         {:source sexp-text :range [start end]} (lookup/sexp-at {:line line :character character} content)
-        function-symbol (first (peg/match '(* "(" (any :s) (<- (to " "))) sexp-text))
-        # _ (logging/log (string/format "signature help request for: %s" function-symbol))
-        # [fn-name & params] (doc/get-signature (symbol function-symbol))
-        # _ (logging/log (string/format "got fn-name: %s" fn-name))
-        # _ (logging/log (string/format "got params: %q" params))
-        signature (doc/get-signature (symbol function-symbol))
-        # _ (logging/log (string/format "got signature: %s" signature))
-        ]
-    [:ok state (match signature
-                 nil :json/null
-                 _ [{:label signature}])]))
+        function-symbol (or (first (peg/match '(* "(" (any :s) (<- (to " "))) sexp-text)) "none")
+        signature (or (doc/get-signature (symbol function-symbol)) "not found")]
+    (case signature
+      "not found" [:ok state :json/null]
+      [:ok state {:signatures [{:label signature}]}])))
 
 (defn on-initialize 
   `` 
@@ -235,6 +229,9 @@
       "textDocument/diagnostic" (on-document-diagnostic state params)
       "textDocument/formatting" (on-document-formatting state params)
       "textDocument/hover" (on-document-hover state params)
+      "textDocument/signatureHelp" (on-document-signature-help state params)
+      # "textDocument/references" (on-document-references state params) TODO: Implement this? See src/lsp/api.ts:103
+      # "textDocument/documentSymbol" (on-document-symbols state params) TODO: Implement this? See src/lsp/api.ts:121
       "janet/serverInfo" (on-janet-serverinfo state params)
       "shutdown" (on-shutdown state params)
       "exit" (on-exit state params)
@@ -271,7 +268,7 @@
   (let [message (read-message)]
     (match (handle-message message state)
       [:ok new-state response] (do
-                                 # (logging/log (string/format "successful rpc: \n - New state: %m \n - Response: %m" new-state response))
+                                 (logging/log (string/format "successful rpc: \n - New state: %m \n - Response: %m" new-state response))
                                  (write-response stdout (rpc/success-response (get message "id") response))
                                  (message-loop :state new-state))
       [:noresponse new-state] (message-loop :state new-state)
@@ -352,7 +349,7 @@
 
 (deftest "test find-unique-paths"
   (test (find-unique-paths (find-all-module-files (os/cwd) true))
-    @["./janet-lsp/src/:all:.janet"
+    @["./janet-lsp/src/:all:.janet" 
       "./janet-lsp/libs/:all:.janet"
       "./janet-lsp/test/:all:.janet"
       "./janet-lsp/build/:all:.jimage"
@@ -365,7 +362,11 @@
                            :short "j"
                            :help "Whether to search `jpm_tree` for modules."}
    "stdio" {:kind :flag
-            :help "Whether to respond to stdio"}])
+            :help "Whether to respond to stdio"}
+   "console" {:kind :flag
+              :help "Start a debug console instead of starting the Language Server"}])
+
+
 
 (defn main [name & args]
   (setdyn :out stderr)

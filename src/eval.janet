@@ -52,7 +52,8 @@
             ((compile newtup env where)))
           (thunk))))))
 
-(defn eval-buffer [str filename]
+(defn eval-buffer [str &opt filename]
+  (default filename "eval.janet")
   (var state (string str))
   (defn chunks [buf parser]
     (def ret state)

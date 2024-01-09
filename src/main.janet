@@ -270,7 +270,7 @@
        (map |(path/relpath (os/cwd) $))
        (map |(string "./" $))))
 
-(defn start-language-server [opts]
+(defn start-language-server []
   # (setdyn :debug true)
   (print "Starting LSP")
   (logging/log "Starting LSP")
@@ -281,7 +281,7 @@
   # (merge-module (dyn :eval-env) (((curenv) 'module/paths) :value))
   (merge-module (dyn :eval-env) jpm-defs)
 
-  (each path (find-unique-paths (find-all-module-files (os/cwd) (not (opts :dont-search-jpm-tree))))
+  (each path (find-unique-paths (find-all-module-files (os/cwd) (not ((dyn :opts) :dont-search-jpm-tree))))
     (cond
       (string/has-suffix? ".janet" path) (array/push (((dyn :eval-env) 'module/paths) :value) [path :source])
       (string/has-suffix? ".so" path) (array/push (((dyn :eval-env) 'module/paths) :value) [path :native])
@@ -292,11 +292,11 @@
 
   (message-loop :state @{:documents @{}}))
 
-(defn start-debug-console [opts]
+(defn start-debug-console []
   (setdyn :debug true)
 
   (def host "127.0.0.1")
-  (def port (if (opts :port) (string (opts :port)) "8037"))
+  (def port (if ((dyn :opts) :port) (string ((dyn :opts) :port)) "8037"))
   
   (print (string/format "Janet LSP Debug Console Active on %s:%s" host port))
   (print "Awaiting reports from running LSP...")
@@ -310,27 +310,36 @@
              (+= linecount 1))}
    host port))
 
-(cmd/main
- (cmd/fn
-   "A Language Server (LSP) for the Janet Programming Language."
-   [[--dont-search-jpm-tree -j] (flag) "Whether to search `jpm_tree` for modules."
-    --stdio (flag) "Whether to respond to stdio. Defaults to `true`."
-    [--console -c] (flag) "Start a debug console instead of starting the Language Server."
-    [--debug-port -p] (optional :int++) "What port to start the debug console on. Defaults to 8037."]
-   (when debug-port
-     (assert console "`--debug-port` requires `--console` as well"))
-   (default stdio true)
-   (default debug-port 8037)
+(defn main [& args]
 
-   (def opts
-     {:dont-search-jpm-tree dont-search-jpm-tree
-      :stdio stdio
-      :console console
-      :debug-port debug-port})
+  (def parsed-args (cmd/args))
 
-   (setdyn :opts opts)
-  #  (setdyn :out stderr)
+  (when (or (has-value? parsed-args "--version")
+            (has-value? parsed-args "-v"))
+    (print "Janet LSP v" version)
+    (os/exit 0))
 
-   (if console
-     (start-debug-console opts)
-     (start-language-server opts))))
+  (cmd/run
+   (cmd/fn
+     "A Language Server (LSP) for the Janet Programming Language."
+     [[--dont-search-jpm-tree -j] (flag) "Whether to search `jpm_tree` for modules."
+      --stdio (flag) "Use STDIO."
+      [--console -c] (flag) "Start a debug console instead of starting the Language Server."
+      [--debug-port -p] (optional :int++) "What port to start the debug console on. Defaults to 8037."]
+
+     (default stdio true)
+     (default debug-port 8037)
+
+     (def opts
+       {:dont-search-jpm-tree dont-search-jpm-tree
+        :stdio stdio
+        :console console
+        :debug-port debug-port})
+
+     (setdyn :opts opts)
+     (setdyn :out stderr)
+
+     (if console
+       (start-debug-console)
+       (start-language-server)))
+       parsed-args))

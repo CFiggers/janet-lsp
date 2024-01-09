@@ -63,9 +63,9 @@
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
         new-content (freeze (fmt/format (string/slice content)))]
-    (logging/log (string/format "old content: %m" content))
-    (logging/log (string/format "new content: %m" new-content))
-    (logging/log (string/format "formatting changed something: %m" (not= content new-content)))
+    (comment logging/log (string/format "old content: %m" content))
+    (comment logging/log (string/format "new content: %m" new-content))
+    (comment logging/log (string/format "formatting changed something: %m" (not= content new-content)))
     (if (= content new-content)
       [:ok state :json/null]
       (do (put-in state [:documents uri] {:content new-content})
@@ -184,7 +184,7 @@
                              :diagnosticProvider {:interFileDependencies true
                                                   :workspaceDiagnostics false}
                              :hoverProvider true
-                             :signatureHelpProvider {:triggerCharacters [" "]}
+                             #:signatureHelpProvider {:triggerCharacters [" "]}
                              :documentFormattingProvider true}
               :serverInfo {:name "janet-lsp"
                            :version version}}])
@@ -218,7 +218,7 @@
   (let [id (get message "id") 
         method (get message "method")
         params (get message "params")]
-    (logging/log (string/format "handle-message received method request: %m" method))
+    (comment logging/log (string/format "handle-message received method request: %m" method))
     (case method
       "initialize" (on-initialize state params)
       "initialized" [:noresponse state]

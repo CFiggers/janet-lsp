@@ -1,7 +1,7 @@
 (use judge)
 (import ./logging)
 
-(defn make-module-entry [x] 
+(defn make-module-entry [x]
   (comment logging/log (string/format "make-module-entry on %m" x))
   (let [bind-type (cond
                     (x :redef) (type (in (x :ref) 0))
@@ -17,7 +17,7 @@
                       (when line (string " on line " line))
                       (when col (string ", column " col))))
             "\n\n"
-            (if d 
+            (if d
               (string/join (-> (string/split "\n" d)
                                (array/insert 1 "```")
                                (array/insert 0 "```janet")) "\n")
@@ -46,7 +46,7 @@
     Returns the length or count of a data structure in constant time as an integer. For structs and tables, returns the number of key-value pairs in the data structure.
   ````))
 
-(deftest "test make-module-entry: def" 
+(deftest "test make-module-entry: def"
   (defglobal "test-def" :a)
   (test-stdout (print (make-module-entry (dyn (symbol "test-def")))) `
     keyword
@@ -62,7 +62,7 @@
           "See https://janet-lang.org/docs/specials.html"))
 
 (deftest "test make-special-form-entry"
-  (test (make-special-form-entry 'set) 
+  (test (make-special-form-entry 'set)
         ````
         special form
         
@@ -71,7 +71,7 @@
         See https://janet-lang.org/docs/specials.html
         ````))
 
-(defn get-signature 
+(defn get-signature
   "Look up the signature of a symbol in a given environment."
   [sym]
   (comment logging/log (string/format "get-signature tried %m" ((dyn :eval-env) sym)))
@@ -172,8 +172,8 @@
 (deftest "testing my-doc*: module entry"
   (setdyn :eval-env (make-env root-env))
   (def import-fiber (fiber/new |(import spork/path) :e (dyn :eval-env)))
-  (def if-result (resume import-fiber)) 
-  (if (= :error (fiber/status import-fiber)) 
+  (def if-result (resume import-fiber))
+  (if (= :error (fiber/status import-fiber))
     (error "fiber errored")
     (merge (dyn :eval-env) (fiber/getenv import-fiber)))
 

@@ -10,10 +10,10 @@
                        (print another)
                        (set thing "other thing")
                        (print thing)))
-    [do
-     [var thing "something"]
-     [var another 123]
-     [print thing]
-     [print another]
-     [set thing "other thing"]
-     [print thing]]))
+        [do
+         [var thing "something"]
+         [var another 123]
+         [print thing]
+         [print another]
+         [set thing "other thing"]
+         [print thing]]))

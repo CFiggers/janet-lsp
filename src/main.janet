@@ -23,7 +23,7 @@
 (defn parse-content-length [input]
   (scan-number (string/trim ((string/split ":" input) 1))))
 
-(defn on-document-change 
+(defn on-document-change
   ``
   Handler for the ["textDocument/didChange"](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_didChange) event.
   
@@ -34,18 +34,18 @@
         uri (get-in params ["textDocument" "uri"])]
 
     (put-in state [:documents uri] @{:content content})
-    
+
     (pp (eval/eval-buffer content (path/basename uri)))
 
     [:noresponse state]))
 
 
-(defn on-document-diagnostic [state params] 
+(defn on-document-diagnostic [state params]
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
         items @[]
         eval-result (eval/eval-buffer content (path/basename uri))]
- 
+
     (each res eval-result
       (match res
         {:location [line col] :message message}
@@ -53,7 +53,7 @@
                     {:range
                      {:start {:line (max 0 (dec line)) :character col}
                       :end   {:line (max 0 (dec line)) :character col}}
-                     :message message}))) 
+                     :message message})))
 
     [:ok state {:kind "full"
                 :items items}]))
@@ -76,26 +76,26 @@
   (let [content (get-in params ["textDocument" "text"])
         uri (get-in params ["textDocument" "uri"])]
 
-  (put-in state [:documents uri] @{:content content}))
+    (put-in state [:documents uri] @{:content content}))
 
   [:noresponse state])
 
-(defn binding-type [x] 
+(defn binding-type [x]
   (let [s (get ((dyn :eval-env) x) :value x)]
     (case (type s)
-      :symbol    12  :boolean   6
-      :function  3   :cfunction 3
-      :string    6   :buffer    6
-      :number    6   :keyword   6
-      :core/file 17  :core/peg  6
-      :struct    6   :table     6
-      :tuple     6   :array     6
-      :fiber     6   :nil       6)))
+      :symbol    12 :boolean   6
+      :function  3  :cfunction 3
+      :string    6  :buffer    6
+      :number    6  :keyword   6
+      :core/file 17 :core/peg  6
+      :struct    6  :table     6
+      :tuple     6  :array     6
+      :fiber     6  :nil       6)))
 
 (defn binding-to-lsp-item
-    "Takes a binding and returns a CompletionItem"
-    [name]
-    {:label name :kind (binding-type name)})
+  "Takes a binding and returns a CompletionItem"
+  [name]
+  {:label name :kind (binding-type name)})
 
 (defn on-completion [state params]
   [:ok state {:isIncomplete true
@@ -111,7 +111,7 @@
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
         {"line" line "character" character} (get params "position")
-        {:word hover-word  :range [start end]} (lookup/word-at {:line line :character character} content)
+        {:word hover-word :range [start end]} (lookup/word-at {:line line :character character} content)
         hover-text (doc/my-doc* (symbol hover-word) (dyn :eval-env))]
     [:ok state (match hover-word
                  nil {}
@@ -135,12 +135,12 @@
       "not found" [:ok state :json/null]
       [:ok state {:signatures [{:label signature}]}])))
 
-(defn on-initialize 
+(defn on-initialize
   `` 
   Called by the LSP client to recieve a list of capabilities
   that this server provides so the client knows what it can request.
   ``
-  [state params] 
+  [state params]
   [:ok state {:capabilities {:completionProvider {:resolveProvider true}
                              :textDocumentSync {:openClose true
                                                 :change 1 # send the Full document https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentSyncKind
@@ -153,7 +153,7 @@
               :serverInfo {:name "janet-lsp"
                            :version version}}])
 
-(defn on-shutdown 
+(defn on-shutdown
   ``
   Called by the LSP client to request that the server shut down.
   ``
@@ -161,7 +161,7 @@
   (setdyn :shutdown-received true)
   [:ok state :json/null])
 
-(defn on-exit 
+(defn on-exit
   ``
   Called by the LSP client to request that the server process exit.
   ``
@@ -171,7 +171,7 @@
     (quit 1))
   [:exit])
 
-(defn on-janet-serverinfo 
+(defn on-janet-serverinfo
   ``
   Called by the LSP client to request information about the server.
   ``
@@ -179,7 +179,7 @@
   [:ok state :json/null])
 
 (defn handle-message [message state]
-  (let [id (get message "id") 
+  (let [id (get message "id")
         method (get message "method")
         params (get message "params")]
     (comment logging/log (string/format "handle-message received method request: %m" method))
@@ -242,7 +242,7 @@
 
 (defn find-all-module-files [path &opt search-jpm-tree explicit results]
   (default explicit true)
-  (default results @[]) 
+  (default results @[])
   (case (os/stat path :mode)
     :directory (when (or explicit
                          search-jpm-tree
@@ -250,23 +250,23 @@
                  (each entry (os/dir path)
                    (find-all-module-files (path/join path entry)
                                           search-jpm-tree false results)))
-    :file      (when (or explicit (not= (path/basename path) "project.janet"))
-                 (when (or (string/has-suffix? ".janet"  path)
-                           (string/has-suffix? ".jimage" path)
-                           (string/has-suffix? ".so"     path))
-                   (array/push results path))))
+    :file (when (or explicit (not= (path/basename path) "project.janet"))
+            (when (or (string/has-suffix? ".janet" path)
+                      (string/has-suffix? ".jimage" path)
+                      (string/has-suffix? ".so" path))
+              (array/push results path))))
   results)
 
 (defn find-unique-paths [paths]
   (->> (seq [found-path :in paths]
          (if (= (path/basename found-path) "init.janet")
-          [(path/join (path/dirname found-path)
-                        (string ":all:" (path/ext found-path)))
-           (path/join (path/dirname found-path) "init.janet")]
-          [(path/join (path/dirname found-path)
-                        (string ":all:" (path/ext found-path)))]))
+           [(path/join (path/dirname found-path)
+                       (string ":all:" (path/ext found-path)))
+            (path/join (path/dirname found-path) "init.janet")]
+           [(path/join (path/dirname found-path)
+                       (string ":all:" (path/ext found-path)))]))
        flatten
-       distinct 
+       distinct
        (map |(path/relpath (os/cwd) $))
        (map |(string "./" $))))
 
@@ -274,7 +274,7 @@
   # (setdyn :debug true)
   (print "Starting LSP")
   (logging/log "Starting LSP")
-  (when (dyn :debug) (spit "janetlsp.log.txt" "")) 
+  (when (dyn :debug) (spit "janetlsp.log.txt" ""))
 
   (setdyn :eval-env (make-env root-env))
 
@@ -292,21 +292,21 @@
 
   (message-loop :state @{:documents @{}}))
 
-(defn start-debug-console [] 
+(defn start-debug-console []
   (def host "127.0.0.1")
   (def port (if ((dyn :opts) :port) (string ((dyn :opts) :port)) "8037"))
-  
+
   (print (string/format "Janet LSP Debug Console Active on %s:%s" host port))
   (print "Awaiting reports from running LSP...")
 
   (var linecount 0)
 
   (rpc/server
-   {:print (fn [self x]
-             (print (string/format "server:%d:> %s" linecount x))
-             (file/flush stdout)
-             (+= linecount 1))}
-   host port))
+    {:print (fn [self x]
+              (print (string/format "server:%d:> %s" linecount x))
+              (file/flush stdout)
+              (+= linecount 1))}
+    host port))
 
 (defn main [& args]
 
@@ -318,28 +318,28 @@
     (os/exit 0))
 
   (cmd/run
-   (cmd/fn
-     "A Language Server (LSP) for the Janet Programming Language."
-     [[--dont-search-jpm-tree -j] (flag) "Whether to search `jpm_tree` for modules."
-      --stdio (flag) "Use STDIO."
-      [--debug -d] (flag) "Print debug messages."
-      [--console -c] (flag) "Start a debug console instead of starting the Language Server."
-      [--debug-port -p] (optional :int++) "What port to start the debug console on. Defaults to 8037."]
+    (cmd/fn
+      "A Language Server (LSP) for the Janet Programming Language."
+      [[--dont-search-jpm-tree -j] (flag) "Whether to search `jpm_tree` for modules."
+       --stdio (flag) "Use STDIO."
+       [--debug -d] (flag) "Print debug messages."
+       [--console -c] (flag) "Start a debug console instead of starting the Language Server."
+       [--debug-port -p] (optional :int++) "What port to start the debug console on. Defaults to 8037."]
 
-     (default stdio true)
-     (default debug-port 8037)
+      (default stdio true)
+      (default debug-port 8037)
 
-     (def opts
-       {:dont-search-jpm-tree dont-search-jpm-tree
-        :stdio stdio
-        :console console
-        :debug-port debug-port})
+      (def opts
+        {:dont-search-jpm-tree dont-search-jpm-tree
+         :stdio stdio
+         :console console
+         :debug-port debug-port})
 
-     (setdyn :opts opts)
-     (setdyn :debug debug)
-     (setdyn :out stderr)
+      (setdyn :opts opts)
+      (setdyn :debug debug)
+      (setdyn :out stderr)
 
-     (if console
-       (start-debug-console)
-       (start-language-server)))
-       parsed-args))
+      (if console
+        (start-debug-console)
+        (start-language-server)))
+    parsed-args))

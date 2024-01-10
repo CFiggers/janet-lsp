@@ -8,13 +8,13 @@ The goal of this project is to provide an augmented editor/tooling experience fo
 
 Current features include:
 
-- [x] Partial auto-completion based on defined symbols
+- [x] Auto-completion based on symbols in the Janet Standard Library and defined in user code
 - [x] On-hover definition of symbols as returned by `(doc ,symbol)`
 - [x] Inline compiler errors
+- [x] Pop-up signature help 
 
 Planned features include:
 
-- [ ] Additional autocompletion support
 - [ ] Jump to definition/implementation
 - [ ] Find references from definition/implementation
 - [ ] Refactoring helps
@@ -30,7 +30,7 @@ Desirable, but possibly more complicated/difficult features include:
 
 ## Caveats
 
-- Windows/MacOS support is mostly untested and, in the case of Windows, known to be somewhat glitchy. Contributions welcome here.
+- MacOS support is _mostly_ untested (but as far as I know there shouldn't be major differences). 
 - The only editor integration currently tested against is [Visual Studio Code](https://code.visualstudio.com/).
 - I've never written a language server before, so I don't really know what I'm doing. Help me, if you'd like!
 
@@ -50,7 +50,7 @@ If you get Janet LSP working with any of these options, please let me know!
 
 ## Getting Started (for Development)
 
-### Clone this project and Build the stand-alone binary
+### Clone this project and Build the stand-alone binary and .jimage file
 
 Requires [Janet](https://github.com/janet-lang/janet) and [jpm](https://github.com/janet-lang/jpm).
 
@@ -61,6 +61,8 @@ $ jpm deps
 $ jpm build
 ```
 
+Both a stand-alone (albeit _dynamically_ linked) binary executable and a .jimage (Janet image) file will be generated.
+
 ### Installing
 
 After running the commands above, the following command will copy the `janet-lsp` binary to a location that can be executed via the command line.
@@ -68,6 +70,22 @@ After running the commands above, the following command will copy the `janet-lsp
 ```shell
 $ jpm install
 ```
+
+### Debug Console
+
+Starting in version 0.0.3, you can start a debug console by passing `--console` to any invocation of Janet LSP, including any of the following:
+
+```console
+$ ./build/janet-lsp --console
+  OR
+$ janet ./build/janet-lsp.jimage --console
+  OR
+$ janet ./src/main.janet --console
+```
+
+In this mode, the LSP will launch a simple RPC server that listens on port 8037 (by default, configurable with the `--debug-port` flag). Janet LSPs with version `>= 0.0.3` will check for a listening server on port 8037 (or the port specified by `--debug-port`) and, if found, transmit anything sent through the `(logging/log)` function to be printed out by the debug console.
+
+In the future, the debug console may function as a networked REPL allowing commands to be sent to the running language server process (but right now it functions in listen-only mode).
 
 ## Contributions
 

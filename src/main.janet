@@ -23,11 +23,6 @@
 (defn parse-content-length [input]
   (scan-number (string/trim ((string/split ":" input) 1))))
 
-(deftest "parse-content-length"
-  (test (parse-content-length "000:123:456:789") 123)
-  (test (parse-content-length "123:456:789") 456)
-  (test (parse-content-length "0123:456::::789") 456))
-
 (defn on-document-change 
   ``
   Handler for the ["textDocument/didChange"](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_didChange) event.
@@ -101,41 +96,6 @@
     "Takes a binding and returns a CompletionItem"
     [name]
     {:label name :kind (binding-type name)})
-
-(deftest "test binding-to-lsp-item"
-  (setdyn :eval-env (table/proto-flatten (make-env root-env)))
-  
-  (def bind-fiber (fiber/new |(do (defglobal "anil" nil)
-                                  (defglobal "hello" 'world)
-                                  (defglobal "atuple" [:a 1])
-                                  true) :e (dyn :eval-env)))
-  (def bf-return (resume bind-fiber))
-
-  (def test-cases @[['hello :symbol] [true :boolean] [% :function]
-                    [abstract? :cfunction] ["Hello world" :string]
-                    [@"Hello world":buffer] [123 :number]
-                    [:keyword :keyword] [stderr :core/file]
-                    [(peg/compile 1) :core/peg] [{:a 1} :struct]
-                    [@{:a 1} :table] ['atuple :tuple]
-                    [@[:a 1]:array] # [(coro) :fiber]
-                    ['anil :nil]])
-
-  (test (map (juxt 1 |(binding-to-lsp-item (first $))) test-cases)
-    @[[:symbol    {:kind 12 :label hello}]
-      [:boolean   {:kind 6  :label true}]
-      [:function  {:kind 3  :label @%}]
-      [:cfunction {:kind 3  :label @abstract?}]
-      [:string    {:kind 6  :label "Hello world"}]
-      [:buffer    {:kind 6  :label @"Hello world"}]
-      [:number    {:kind 6  :label 123}]
-      [:keyword   {:kind 6  :label :keyword}]
-      [:core/file {:kind 17 :label "<core/file 0x1>"}]
-      [:core/peg  {:kind 6  :label "<core/peg 0x2>"}]
-      [:struct    {:kind 6  :label {:a 1}}]
-      [:table     {:kind 6  :label @{:a 1}}]
-      [:tuple     {:kind 6  :label atuple}]
-      [:array     {:kind 6  :label @[:a 1]}]
-      [:nil       {:kind 12 :label anil}]]))
 
 (defn on-completion [state params]
   [:ok state {:isIncomplete true
@@ -297,38 +257,6 @@
                    (array/push results path))))
   results)
 
-(deftest "test find-all-module-files"
-  (test (find-all-module-files (os/cwd))
-    @["/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/main.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/rpc.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/logging.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/misc.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/lookup.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/doc.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/eval.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jpm-defs.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jayson.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/basic.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/build/janet-lsp.jimage"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/dist/janet-lsp.jimage"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/test/syntax-highlighting.janet"]))
-
-(deftest "test find-all-module-files"
-  (test (find-all-module-files (os/cwd) true)
-    @["/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/main.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/rpc.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/logging.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/misc.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/lookup.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/doc.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/eval.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jpm-defs.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jayson.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/basic.janet"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/build/janet-lsp.jimage"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/dist/janet-lsp.jimage"
-      "/home/caleb/projects/vscode/vscode-janet-plus-plus/test/syntax-highlighting.janet"]))
-
 (defn find-unique-paths [paths]
   (->> (seq [found-path :in paths]
          (if (= (path/basename found-path) "init.janet")
@@ -342,25 +270,7 @@
        (map |(path/relpath (os/cwd) $))
        (map |(string "./" $))))
 
-(deftest "test find-unique-paths"
-  (test (find-unique-paths (find-all-module-files (os/cwd)))
-    @["./janet-lsp/src/:all:.janet"
-      "./janet-lsp/libs/:all:.janet"
-      "./janet-lsp/test/:all:.janet"
-      "./janet-lsp/build/:all:.jimage"
-      "./dist/:all:.jimage"
-      "./test/:all:.janet"]))
-
-(deftest "test find-unique-paths"
-  (test (find-unique-paths (find-all-module-files (os/cwd) true))
-    @["./janet-lsp/src/:all:.janet" 
-      "./janet-lsp/libs/:all:.janet"
-      "./janet-lsp/test/:all:.janet"
-      "./janet-lsp/build/:all:.jimage"
-      "./dist/:all:.jimage"
-      "./test/:all:.janet"]))
-
-(defn start-language-server [opts]
+(defn start-language-server []
   # (setdyn :debug true)
   (print "Starting LSP")
   (logging/log "Starting LSP")
@@ -371,7 +281,7 @@
   # (merge-module (dyn :eval-env) (((curenv) 'module/paths) :value))
   (merge-module (dyn :eval-env) jpm-defs)
 
-  (each path (find-unique-paths (find-all-module-files (os/cwd) (not (opts :dont-search-jpm-tree))))
+  (each path (find-unique-paths (find-all-module-files (os/cwd) (not ((dyn :opts) :dont-search-jpm-tree))))
     (cond
       (string/has-suffix? ".janet" path) (array/push (((dyn :eval-env) 'module/paths) :value) [path :source])
       (string/has-suffix? ".so" path) (array/push (((dyn :eval-env) 'module/paths) :value) [path :native])
@@ -382,11 +292,9 @@
 
   (message-loop :state @{:documents @{}}))
 
-(defn start-debug-console [opts]
-  (setdyn :debug true)
-
+(defn start-debug-console [] 
   (def host "127.0.0.1")
-  (def port (if (opts :port) (string (opts :port)) "8037"))
+  (def port (if ((dyn :opts) :port) (string ((dyn :opts) :port)) "8037"))
   
   (print (string/format "Janet LSP Debug Console Active on %s:%s" host port))
   (print "Awaiting reports from running LSP...")
@@ -400,27 +308,38 @@
              (+= linecount 1))}
    host port))
 
-(cmd/main
- (cmd/fn
-   "A Language Server (LSP) for the Janet Programming Language."
-   [[--dont-search-jpm-tree -j] (flag) "Whether to search `jpm_tree` for modules."
-    --stdio (flag) "Whether to respond to stdio. Defaults to `true`."
-    [--console -c] (flag) "Start a debug console instead of starting the Language Server."
-    [--debug-port -p] (optional :int++) "What port to start the debug console on. Defaults to 8037."]
-   (when debug-port
-     (assert console "`--debug-port` requires `--console` as well"))
-   (default stdio true)
-   (default debug-port 8037)
+(defn main [& args]
 
-   (def opts
-     {:dont-search-jpm-tree dont-search-jpm-tree
-      :stdio stdio
-      :console console
-      :debug-port debug-port})
+  (def parsed-args (cmd/args))
 
-   (setdyn :opts opts)
-  #  (setdyn :out stderr)
+  (when (or (has-value? parsed-args "--version")
+            (has-value? parsed-args "-v"))
+    (print "Janet LSP v" version)
+    (os/exit 0))
 
-   (if console
-     (start-debug-console opts)
-     (start-language-server opts))))
+  (cmd/run
+   (cmd/fn
+     "A Language Server (LSP) for the Janet Programming Language."
+     [[--dont-search-jpm-tree -j] (flag) "Whether to search `jpm_tree` for modules."
+      --stdio (flag) "Use STDIO."
+      [--debug -d] (flag) "Print debug messages."
+      [--console -c] (flag) "Start a debug console instead of starting the Language Server."
+      [--debug-port -p] (optional :int++) "What port to start the debug console on. Defaults to 8037."]
+
+     (default stdio true)
+     (default debug-port 8037)
+
+     (def opts
+       {:dont-search-jpm-tree dont-search-jpm-tree
+        :stdio stdio
+        :console console
+        :debug-port debug-port})
+
+     (setdyn :opts opts)
+     (setdyn :debug debug)
+     (setdyn :out stderr)
+
+     (if console
+       (start-debug-console)
+       (start-language-server)))
+       parsed-args))

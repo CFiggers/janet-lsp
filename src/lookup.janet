@@ -29,16 +29,32 @@
               (break)))
        ret)))
 
+(test (peg/match word-peg "(defn main [& args] (+ 1 1))")
+  @[[0 "" 0]
+    [1 "defn" 5]
+    [6 "main" 10]
+    [11 "[&" 13]
+    [14 "args]" 19]
+    [20 "" 20]
+    [21 "+" 22]
+    [23 "1" 24]
+    [25 "1" 26]
+    [27 "" 27]])
+
+(test (peg/match word-peg "") nil)
+
 (defn word-at [location source]
   # (logging/log (string/format "word-at received location: %m" location))
   # (logging/log (string/format "word-at received source: %m" source))
   (let [{:character character-pos :line line-pos} location
         line ((string/split "\n" source) line-pos)
-        parsed (sort-by last (peg/match word-peg line))
+        parsed (or (sort-by last (or (peg/match word-peg line) @[[0 "" 0]])))
         word (or (first-where |(>= ($ 2) character-pos) parsed) (last parsed))]
     {:range [(word 0) (word 2)] :word (word 1)}))
 
 (test (word-at {:line 0 :character 16} "(def- parse-peg\n") {:range [6 14] :word "parse-peg"})
+
+(test (word-at {:line 1 :character 0} "(import )\n") {:range [0 0] :word ""})
 
 (def sexp-peg
   (peg/compile

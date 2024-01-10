@@ -1,12 +1,5 @@
 (import spork/rpc)
 
-(defn init-logger []
-  (setdyn :out stderr)
-  (spit "janetlsp.log.txt" ""))
-
-(defn shutdown-logger []
-  (file/close (dyn :logfile)))
-
 (defn log [output]
 
   (comment pp (dyn :console))

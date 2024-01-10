@@ -1,3 +1,5 @@
+(use judge)
+
 (defmacro letv [bindings & body]
   ~(do ,;(seq [[k v] :in (partition 2 bindings)] ['var k v]) ,;body))
 

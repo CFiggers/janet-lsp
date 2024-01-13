@@ -61,6 +61,8 @@
     (when ret
       (buffer/push-string buf str)
       (buffer/push-string buf "\n")))
+  
+  (setdyn :eval-env (make-env root-env))
 
   (def eval-fiber
     (fiber/new

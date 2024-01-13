@@ -225,7 +225,6 @@
   (let [input (file/read stdin :line)
         content-length (+ (parse-content-length input) (read-offset))
         input (file/read stdin content-length)]
-    # (print "spork/json and jayson are identical: " (deep= (json/decode input) (jayson/decode input)))
     (json/decode input)))
 
 (defn message-loop [&named state]
@@ -271,7 +270,6 @@
        (map |(string "./" $))))
 
 (defn start-language-server []
-  # (setdyn :debug true)
   (print "Starting LSP")
   (logging/log "Starting LSP")
   (when (dyn :debug) (spit "janetlsp.log.txt" "")) 
@@ -318,28 +316,28 @@
     (os/exit 0))
 
   (cmd/run
-   (cmd/fn
-     "A Language Server (LSP) for the Janet Programming Language."
-     [[--dont-search-jpm-tree -j] (flag) "Whether to search `jpm_tree` for modules."
-      --stdio (flag) "Use STDIO."
-      [--debug -d] (flag) "Print debug messages."
-      [--console -c] (flag) "Start a debug console instead of starting the Language Server."
-      [--debug-port -p] (optional :int++) "What port to start the debug console on. Defaults to 8037."]
+    (cmd/fn
+      "A Language Server (LSP) for the Janet Programming Language."
+      [[--dont-search-jpm-tree -j] (flag) "Whether to search `jpm_tree` for modules."
+       --stdio (flag) "Use STDIO."
+       [--debug -d] (flag) "Print debug messages."
+       [--console -c] (flag) "Start a debug console instead of starting the Language Server."
+       [--debug-port -p] (optional :int++) "What port to start or connect to the debug console on. Defaults to 8037."]
 
-     (default stdio true)
-     (default debug-port 8037)
+      (default stdio true)
+      (default debug-port 8037)
 
-     (def opts
-       {:dont-search-jpm-tree dont-search-jpm-tree
-        :stdio stdio
-        :console console
-        :debug-port debug-port})
+      (def opts
+        {:dont-search-jpm-tree dont-search-jpm-tree
+         :stdio stdio
+         :console console
+         :debug-port debug-port})
 
-     (setdyn :opts opts)
-     (setdyn :debug debug)
-     (setdyn :out stderr)
+      (setdyn :opts opts)
+      (setdyn :debug debug)
+      (setdyn :out stderr)
 
-     (if console
-       (start-debug-console)
-       (start-language-server)))
-       parsed-args))
+      (if console
+        (start-debug-console)
+        (start-language-server)))
+    parsed-args))

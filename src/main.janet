@@ -32,13 +32,8 @@
   [state params]
   (let [content (get-in params ["contentChanges" 0 "text"])
         uri (get-in params ["textDocument" "uri"])]
-
     (put-in state [:documents uri] @{:content content})
-
-    (pp (eval/eval-buffer content (path/basename uri)))
-
     [:noresponse state]))
-
 
 (defn on-document-diagnostic [state params]
   (let [uri (get-in params ["textDocument" "uri"])
@@ -273,11 +268,12 @@
   (print "Starting LSP")
   (logging/log "Starting LSP")
   (when (dyn :debug) (spit "janetlsp.log.txt" ""))
-
+  
+  (merge-module root-env jpm-defs nil true)
   (setdyn :eval-env (make-env root-env))
 
   # (merge-module (dyn :eval-env) (((curenv) 'module/paths) :value))
-  (merge-module (dyn :eval-env) jpm-defs)
+  # (merge-module (dyn :eval-env) jpm-defs)
 
   (each path (find-unique-paths (find-all-module-files (os/cwd) (not ((dyn :opts) :dont-search-jpm-tree))))
     (cond

@@ -78,14 +78,14 @@
 
 (deftest "test find-unique-paths"
   (test (find-unique-paths (find-all-module-files (os/cwd)))
-        @["./src/:all:.janet"
-          "./libs/:all:.janet"
-          "./test/:all:.janet"
-          "./build/:all:.jimage"]))
+    @["./src/:all:.janet"
+      "./libs/:all:.janet"
+      "./test/:all:.janet"
+      "./build/:all:.jimage"]))
 
 (deftest "test find-unique-paths"
   (test (find-unique-paths (find-all-module-files (os/cwd) true))
-        @["./src/:all:.janet"
-          "./libs/:all:.janet"
-          "./test/:all:.janet"
-          "./build/:all:.jimage"]))
+    @["./src/:all:.janet"
+      "./libs/:all:.janet"
+      "./test/:all:.janet"
+      "./build/:all:.jimage"]))

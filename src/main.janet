@@ -291,9 +291,6 @@
   (merge-module root-env jpm-defs nil true)
   (setdyn :eval-env (make-env root-env))
 
-  # (merge-module (dyn :eval-env) (((curenv) 'module/paths) :value))
-  # (merge-module (dyn :eval-env) jpm-defs)
-
   (each path (find-unique-paths (find-all-module-files (os/cwd) (not ((dyn :opts) :dont-search-jpm-tree))))
     (cond
       (string/has-suffix? ".janet" path) (array/push (((dyn :eval-env) 'module/paths) :value) [path :source])
@@ -349,7 +346,7 @@
          :debug-port debug-port})
 
       (setdyn :opts opts)
-      # (setdyn :debug true)
+      (when debug (setdyn :debug true))
       (setdyn :out stderr)
 
       (if console

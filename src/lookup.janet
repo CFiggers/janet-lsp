@@ -44,8 +44,6 @@
 (test (peg/match word-peg "") nil)
 
 (defn word-at [location source]
-  # (logging/log (string/format "word-at received location: %m" location))
-  # (logging/log (string/format "word-at received source: %m" source))
   (let [{:character character-pos :line line-pos} location
         line ((string/split "\n" source) line-pos)
         parsed (or (sort-by last (or (peg/match word-peg line) @[[0 "" 0]])))

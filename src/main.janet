@@ -23,6 +23,21 @@
 (defn parse-content-length [input]
   (scan-number (string/trim ((string/split ":" input) 1))))
 
+(defn run-diagnostics [uri content]
+  (let [items @[]
+        eval-result (eval/eval-buffer content (path/basename uri))]
+
+    (each res eval-result
+      (match res
+        {:location [line col] :message message}
+        (array/push items
+                    {:range
+                     {:start {:line (max 0 (dec line)) :character col}
+                      :end {:line (max 0 (dec line)) :character col}}
+                     :message message})))
+    
+    items))
+
 (defn on-document-change
   ``
   Handler for the ["textDocument/didChange"](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_didChange) event.
@@ -32,31 +47,24 @@
   [state params]
   (let [content (get-in params ["contentChanges" 0 "text"])
         uri (get-in params ["textDocument" "uri"])]
-
     (put-in state [:documents uri] @{:content content})
-
-    (pp (eval/eval-buffer content (path/basename uri)))
-
-    [:noresponse state]))
-
+    
+    (if (dyn :push-diagnostics)
+      (let [d (run-diagnostics uri content)]
+        (if (empty? d) 
+          [:noresponse state]
+          [:ok state {:method "textDocument/publishDiagnostics"
+                      :params {:uri uri
+                               :diagnostics d}} :notify true])) 
+      [:noresponse state])))
 
 (defn on-document-diagnostic [state params]
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
-        items @[]
-        eval-result (eval/eval-buffer content (path/basename uri))]
-
-    (each res eval-result
-      (match res
-        {:location [line col] :message message}
-        (array/push items
-                    {:range
-                     {:start {:line (max 0 (dec line)) :character col}
-                      :end   {:line (max 0 (dec line)) :character col}}
-                     :message message})))
+        diagnostics (run-diagnostics uri content)] 
 
     [:ok state {:kind "full"
-                :items items}]))
+                :items diagnostics}]))
 
 (defn on-document-formatting [state params]
   (let [uri (get-in params ["textDocument" "uri"])
@@ -69,7 +77,7 @@
       [:ok state :json/null]
       (do (put-in state [:documents uri] {:content new-content})
           [:ok state [{:range {:start {:line 0 :character 0}
-                               :end   {:line 1000000 :character 1000000}}
+                               :end {:line 1000000 :character 1000000}}
                        :newText new-content}]]))))
 
 (defn on-document-open [state params]
@@ -141,6 +149,12 @@
   that this server provides so the client knows what it can request.
   ``
   [state params]
+  (logging/log (string/format "on-initialize called with these params: %m" params))
+
+  (if-let [diagnostic? (get-in params ["capabilities" "textDocument" "diagnostic"])]
+    (setdyn :push-diagnostics false)
+    (setdyn :push-diagnostics true))
+
   [:ok state {:capabilities {:completionProvider {:resolveProvider true}
                              :textDocumentSync {:openClose true
                                                 :change 1 # send the Full document https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentSyncKind
@@ -182,7 +196,7 @@
   (let [id (get message "id")
         method (get message "method")
         params (get message "params")]
-    (comment logging/log (string/format "handle-message received method request: %m" method))
+    (logging/log (string/format "handle-message received method request: %m" method))
     (case method
       "initialize" (on-initialize state params)
       "initialized" [:noresponse state]
@@ -225,19 +239,18 @@
   (let [input (file/read stdin :line)
         content-length (+ (parse-content-length input) (read-offset))
         input (file/read stdin content-length)]
-    # (print "spork/json and jayson are identical: " (deep= (json/decode input) (jayson/decode input)))
     (json/decode input)))
 
 (defn message-loop [&named state]
   (let [message (read-message)]
     (match (handle-message message state)
-      [:ok new-state response] (do
+      [:ok new-state & response] (do
                                  (logging/log "successful rpc")
-                                 (write-response stdout (rpc/success-response (get message "id") response))
+                                 (write-response stdout (rpc/success-response (get message "id") ;response))
                                  (message-loop :state new-state))
       [:noresponse new-state] (message-loop :state new-state)
 
-      [:error new-state error] (pp "unhandled error response")
+      [:error new-state err] (printf "unhandled error response: %m" err)
       [:exit] (do (file/flush stdout) (ev/sleep 2) nil))))
 
 (defn find-all-module-files [path &opt search-jpm-tree explicit results]
@@ -271,15 +284,12 @@
        (map |(string "./" $))))
 
 (defn start-language-server []
-  # (setdyn :debug true)
   (print "Starting LSP")
   (logging/log "Starting LSP")
   (when (dyn :debug) (spit "janetlsp.log.txt" ""))
 
+  (merge-module root-env jpm-defs nil true)
   (setdyn :eval-env (make-env root-env))
-
-  # (merge-module (dyn :eval-env) (((curenv) 'module/paths) :value))
-  (merge-module (dyn :eval-env) jpm-defs)
 
   (each path (find-unique-paths (find-all-module-files (os/cwd) (not ((dyn :opts) :dont-search-jpm-tree))))
     (cond
@@ -324,7 +334,7 @@
        --stdio (flag) "Use STDIO."
        [--debug -d] (flag) "Print debug messages."
        [--console -c] (flag) "Start a debug console instead of starting the Language Server."
-       [--debug-port -p] (optional :int++) "What port to start the debug console on. Defaults to 8037."]
+       [--debug-port -p] (optional :int++) "What port to start or connect to the debug console on. Defaults to 8037."]
 
       (default stdio true)
       (default debug-port 8037)
@@ -336,7 +346,7 @@
          :debug-port debug-port})
 
       (setdyn :opts opts)
-      (setdyn :debug debug)
+      (when debug (setdyn :debug true))
       (setdyn :out stderr)
 
       (if console

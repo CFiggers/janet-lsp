@@ -44,8 +44,6 @@
 (test (peg/match word-peg "") nil)
 
 (defn word-at [location source]
-  # (logging/log (string/format "word-at received location: %m" location))
-  # (logging/log (string/format "word-at received source: %m" source))
   (let [{:character character-pos :line line-pos} location
         line ((string/split "\n" source) line-pos)
         parsed (or (sort-by last (or (peg/match word-peg line) @[[0 "" 0]])))
@@ -126,35 +124,40 @@
   (let [a 1 b 2]
     (first-where |(< (first $) 0) [[-2 :a] [-1 :b] [0 :c]])))                 
 ``)
-  (map |(string/slice sample ($ 0) ($ 1))
-       @[@[0 14]
-         @[16 263]
-         @[50 262]
-         @[78 261]
-         @[114 126]
-         @[134 249]
-         @[143 156]
-         @[169 248]
-         @[175 192]
-         @[183 191]
-         @[207 225]
-         @[216 224]
-         @[240 247]
-         @[282 390]
-         @[304 311]
-         @[314 389]
-         @[333 388]
-         @[347 362]
-         @[350 359]]))
+  (test (map |[$ (string/slice sample ($ 0) ($ 1))] @[@[0 14] @[16 263] @[50 262] @[78 261] @[114 126] @[134 249] @[143 156] @[169 248] @[175 192] @[183 191] @[207 225] @[216 224] @[240 247] @[282 390] @[304 311] @[314 389] @[333 388] @[347 362] @[350 359]])
+    @[[@[0 14] "(import spork)"]
+      [@[16 263] "(defmacro first-where [pred ds]\n  (with-syms [$pred $ds]\n    ~(let [,$pred ,pred ,$ds ,ds]\n       (var ret \"\")\n       (for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))\n       ret)))"]
+      [@[50 262] "(with-syms [$pred $ds]\n    ~(let [,$pred ,pred ,$ds ,ds]\n       (var ret \"\")\n       (for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))\n       ret))"]
+      [@[78 261] "(let [,$pred ,pred ,$ds ,ds]\n       (var ret \"\")\n       (for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))\n       ret)"]
+      [@[114 126] "(var ret \"\")"]
+      [@[134 249] "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"]
+      [@[143 156] "(length ,$ds)"]
+      [@[169 248] "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"]
+      [@[175 192] "(,$pred (,$ds i))"]
+      [@[183 191] "(,$ds i)"]
+      [@[207 225] "(set ret (,$ds i))"]
+      [@[216 224] "(,$ds i)"]
+      [@[240 247] "(break)"]
+      [@[282 390] "(defn main [& args]\n  (+ 1 1)\n  (let [a 1 b 2]\n    (first-where |(< (first $) 0) [[-2 :a] [-1 :b] [0 :c]])))"]
+      [@[304 311] "(+ 1 1)"]
+      [@[314 389] "(let [a 1 b 2]\n    (first-where |(< (first $) 0) [[-2 :a] [-1 :b] [0 :c]]))"]
+      [@[333 388] "(first-where |(< (first $) 0) [[-2 :a] [-1 :b] [0 :c]])"]
+      [@[347 362] "(< (first $) 0)"]
+      [@[350 359] "(first $)"]]))
 
 (defn sexp-at [location source]
   (let [{:character character-pos :line line-pos} location
         idx (+ character-pos (sum (map (comp inc length) (array/slice (string/split "\n" source) 0 line-pos))))
-        s-exps (peg/match sexp-peg source)
-        sexp-range (last (filter |(<= ($ 0) idx ($ 1)) s-exps))]
-    {:source (string/slice source ;sexp-range) :range sexp-range}))
+        s-exps (or (peg/match sexp-peg source) @[])] 
+    (if-let [sexp-range (last (filter |(< ($ 0) idx ($ 1)) s-exps))]
+      {:source (string/slice source ;sexp-range) :range sexp-range}
+      {:source "" :range @[line-pos character-pos]})))
 
-(test (sexp-at {:character 15 :line 2} "(def a-startup-symbol [])\n\n(import spork/argparse)") {:range @[27 50] :source "(import spork/argparse)"})
+(test (sexp-at {:line 2 :character 3} "(def a-startup-symbol [])\n\nsymbol\n\n(import spork/argparse)")
+  {:range @[2 3] :source ""})
+
+(test (sexp-at {:character 15 :line 2} "(def a-startup-symbol [])\n\n(import spork/argparse)") 
+      {:range @[27 50] :source "(import spork/argparse)"})
 
 (deftest "sexp-at"
   (def sample

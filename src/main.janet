@@ -327,7 +327,7 @@
          :debug-port debug-port})
 
       (setdyn :opts opts)
-      # (setdyn :debug debug)
+      (when debug (setdyn :debug true))
       (setdyn :out stderr)
 
       (if console

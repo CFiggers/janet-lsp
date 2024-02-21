@@ -18,9 +18,14 @@
                       (when col (string ", column " col))))
             "\n\n"
             (if d
-              (string/join (-> (string/split "\n" d)
-                               (array/insert 1 "```")
-                               (array/insert 0 "```janet")) "\n")
+              (let [parts (string/split "\n" d)]
+                (if (every? ((juxt |(string/has-prefix? "(" $)
+                                   |(string/has-suffix? ")" $))
+                             (parts 0)))
+                  (string/join (-> parts
+                                   (array/insert 1 "```")
+                                   (array/insert 0 "```janet")) "\n")
+                  d))
               "No documentation found.\n"))))
 
 (deftest "test make-module-entry: string/trim"

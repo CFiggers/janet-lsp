@@ -298,7 +298,7 @@
       (string/has-suffix? ".jimage" path) (array/push (((dyn :eval-env) 'module/paths) :value) [path :jimage])))
 
   (when (os/stat "./.janet-lsp/startup.janet")
-    (eval/eval-buffer (slurp "./.janet-lsp/startup.janet") "startup.janet"))
+    (merge-into root-env (dofile "./.janet-lsp/startup.janet")))
 
   (message-loop :state @{:documents @{}}))
 

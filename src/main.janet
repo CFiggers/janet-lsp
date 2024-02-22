@@ -13,7 +13,7 @@
 
 (use judge)
 
-(def version "0.0.3")
+(def version "0.0.5")
 
 (def jpm-defs (require "../libs/jpm-defs"))
 

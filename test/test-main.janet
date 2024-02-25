@@ -55,6 +55,7 @@
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jpm-defs.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jayson.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-main.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-lookup.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-format-file-after.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-format-file-before.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/build/janet-lsp.jimage"]))
@@ -72,6 +73,7 @@
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jpm-defs.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jayson.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-main.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-lookup.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-format-file-after.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-format-file-before.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/build/janet-lsp.jimage"]))

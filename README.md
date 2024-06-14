@@ -45,6 +45,7 @@ Other editors that implement LSP client protocols, either built-in or through ed
 - Sublime Text
 - Helix
 - Kakoune
+- Zed
 
 If you get Janet LSP working with any of these options, please let me know!
 
@@ -61,14 +62,20 @@ $ jpm deps
 $ jpm build
 ```
 
-Both a stand-alone (albeit _dynamically_ linked) binary executable and a .jimage (Janet image) file will be generated.
+A .jimage (Janet image) file will be generated in `/build`. Using a .jimage file makes Janet LSP fully cross-platform (wherever there is a compatible Janet binary on the user's path). But it also means that you must have a Janet binary to use Janet LSP (this author struggles to imagine a scenario where you would both need the LSP and NOT have Janet itself installed).
 
 ### Installing
 
-After running the commands above, the following command will copy the `janet-lsp` binary to a location that can be executed via the command line.
+After running the commands above, the following command will copy the `janet-lsp` binscript to a location that can be executed via the command line.
 
 ```shell
 $ jpm install
+```
+
+Test successful install by running the following:
+
+```shell
+$ janet-lsp --version
 ```
 
 ### Debug Console

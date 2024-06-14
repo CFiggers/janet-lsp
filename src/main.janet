@@ -51,11 +51,9 @@
     
     (if (dyn :push-diagnostics)
       (let [d (run-diagnostics uri content)]
-        (if (empty? d) 
-          [:noresponse state]
-          [:ok state {:method "textDocument/publishDiagnostics"
-                      :params {:uri uri
-                               :diagnostics d}} :notify true])) 
+        [:ok state {:method "textDocument/publishDiagnostics"
+                    :params {:uri uri
+                             :diagnostics d}} :notify true]) 
       [:noresponse state])))
 
 (defn on-document-diagnostic [state params]

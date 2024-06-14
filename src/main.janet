@@ -13,7 +13,7 @@
 
 (use judge)
 
-(def version "0.0.3")
+(def version "0.0.5")
 
 (def jpm-defs (require "../libs/jpm-defs"))
 
@@ -51,11 +51,9 @@
     
     (if (dyn :push-diagnostics)
       (let [d (run-diagnostics uri content)]
-        (if (empty? d) 
-          [:noresponse state]
-          [:ok state {:method "textDocument/publishDiagnostics"
-                      :params {:uri uri
-                               :diagnostics d}} :notify true])) 
+        [:ok state {:method "textDocument/publishDiagnostics"
+                    :params {:uri uri
+                             :diagnostics d}} :notify true]) 
       [:noresponse state])))
 
 (defn on-document-diagnostic [state params]
@@ -217,8 +215,8 @@
 
 (defn line-ending []
   (case (os/which)
-    :windows "\n\n"
-    "\r\n\r\n"))
+    :windows "\r\n\r\n"
+    "\n\n"))
 
 (defn read-offset []
   (case (os/which)
@@ -239,10 +237,11 @@
   (let [input (file/read stdin :line)
         content-length (+ (parse-content-length input) (read-offset))
         input (file/read stdin content-length)]
-    (json/decode input)))
+    (json/decode input))) 
 
 (defn message-loop [&named state]
-  (let [message (read-message)]
+  (let [message (read-message)] 
+    (logging/log (string/format "got: %q" message))
     (match (handle-message message state)
       [:ok new-state & response] (do
                                  (logging/log "successful rpc")
@@ -285,7 +284,6 @@
 
 (defn start-language-server []
   (print "Starting LSP")
-  (logging/log "Starting LSP")
   (when (dyn :debug) (spit "janetlsp.log.txt" ""))
 
   (merge-module root-env jpm-defs nil true)

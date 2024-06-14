@@ -1,9 +1,11 @@
 (declare-project
   :name "janet-lsp"
   :description "A Language Server (LSP) for the Janet Programming Language"
-  :version "0.0.4"
+  :version "0.0.5"
   :dependencies ["https://github.com/janet-lang/spork.git"
-                 "https://github.com/ianthehenry/judge.git"])
+                 "https://github.com/CFiggers/jayson.git"
+                 "https://github.com/ianthehenry/judge.git"
+                 "https://github.com/CFiggers/cmd.git"])
 
 # (def cflags
 #   (case (os/which)

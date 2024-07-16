@@ -213,19 +213,15 @@
       "exit" (on-exit state params)
       [:noresponse state])))
 
-(defn line-ending []
-  (case (os/which)
-    :windows "\r\n\r\n"
-    "\n\n"))
-
-(defn read-offset []
+(def line-ending "\r\n\r\n")
+(def read-offset
   (case (os/which)
     :windows 1
     2))
 
 (defn write-response [file response]
   # Write headers
-  (file/write file (string "Content-Length: " (length response) (line-ending)))
+  (file/write file (string "Content-Length: " (length response) line-ending))
 
   # Write response
   (file/write file response)

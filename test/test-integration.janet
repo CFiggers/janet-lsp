@@ -2,14 +2,11 @@
 
 (use judge)
 
-(defn line-ending []
-  (case (os/which)
-    :windows "\r\n\r\n"
-    "\n\n"))
+(def line-ending "\r\n\r\n")
 
 (defn write-output [handle response]
   # Write headers
-  (:write handle (string "Content-Length: " (length response) (line-ending)))
+  (:write handle (string "Content-Length: " (length response) line-ending))
 
   # Write response
   (:write handle (string response (if (string/has-suffix? "\n" response) "" "\n")))

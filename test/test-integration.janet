@@ -54,11 +54,13 @@
 
 (deftest-type with-process
   :setup    (fn []
-              (start-lsp))
+              # (start-lsp)
+              )
   :reset    (fn [context]
               (printf "context is: %q" context)
-              (exit-lsp context)
-              (start-lsp))
+              # (exit-lsp context)
+              #   (start-lsp)
+              )
   :teardown (fn [context] ))
 
 (deftest: with-process "Starts and exits" [context]

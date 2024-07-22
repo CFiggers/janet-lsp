@@ -1,11 +1,11 @@
 (use judge)
 
-(use ../src/main)
+(import ../src/main)
 
 (deftest "parse-content-length"
-  (test (parse-content-length "000:123:456:789") 123)
-  (test (parse-content-length "123:456:789") 456)
-  (test (parse-content-length "0123:456::::789") 456))
+  (test (main/parse-content-length "000:123:456:789") 123)
+  (test (main/parse-content-length "123:456:789") 456)
+  (test (main/parse-content-length "0123:456::::789") 456))
 
 (deftest "test binding-to-lsp-item"
   (setdyn :eval-env (table/proto-flatten (make-env root-env)))
@@ -25,7 +25,7 @@
                     [@[:a 1] :array] # [(coro) :fiber]
                     ['anil :nil]])
 
-  (test (map (juxt 1 |(binding-to-lsp-item (first $))) test-cases)
+  (test (map (juxt 1 |(main/binding-to-lsp-item (first $))) test-cases)
         @[[:symbol    {:kind 12 :label hello}]
           [:boolean   {:kind 6  :label true}]
           [:function  {:kind 3  :label @%}]
@@ -43,7 +43,7 @@
           [:nil       {:kind 12 :label anil}]]))
 
 (deftest "test find-all-module-files"
-  (test (find-all-module-files (os/cwd))
+  (test (main/find-all-module-files (os/cwd))
     @["/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/main.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/rpc.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/logging.janet"
@@ -61,7 +61,7 @@
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/build/janet-lsp.jimage"]))
 
 (deftest "test find-all-module-files"
-  (test (find-all-module-files (os/cwd) true)
+  (test (main/find-all-module-files (os/cwd) true)
     @["/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/main.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/rpc.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/src/logging.janet"
@@ -79,14 +79,14 @@
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/build/janet-lsp.jimage"]))
 
 (deftest "test find-unique-paths"
-  (test (find-unique-paths (find-all-module-files (os/cwd)))
+  (test (main/find-unique-paths (main/find-all-module-files (os/cwd)))
     @["./src/:all:.janet"
       "./libs/:all:.janet"
       "./test/:all:.janet"
       "./build/:all:.jimage"]))
 
 (deftest "test find-unique-paths"
-  (test (find-unique-paths (find-all-module-files (os/cwd) true))
+  (test (main/find-unique-paths (main/find-all-module-files (os/cwd) true))
     @["./src/:all:.janet"
       "./libs/:all:.janet"
       "./test/:all:.janet"

@@ -231,7 +231,7 @@
 
 (defn read-message []
   (let [input (file/read stdin :line)
-        content-length (+ (parse-content-length input) (read-offset))
+        content-length (+ (parse-content-length input) read-offset)
         input (file/read stdin content-length)]
     (json/decode input))) 
 

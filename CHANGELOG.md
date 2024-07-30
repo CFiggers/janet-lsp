@@ -2,6 +2,36 @@
 All notable changes to this project will be documented in this file.
 Format for entires is <version-string> - release date.
 
+## 0.0.5 - 2024-06-14
+
+- Diagnostics
+  - Only syntax highlight function signatures in pop-up hover definitions by @CFiggers in [#23](https://github.com/CFiggers/janet-lsp/pull/23)
+  - Fix bug with publishing diagnostics (was causing last diagnostic warning to not clear when using for e.g. nvim-lsp) by @CFiggers in [#23](https://github.com/CFiggers/janet-lsp/pull/23)
+- Tests
+  - Additional tests and reorganization by @CFiggers in [#23](https://github.com/CFiggers/janet-lsp/pull/23)
+
+## 0.0.4 - 2024-01-26
+
+- Project
+  - We now install `janet-lsp` as a binscript instead of building an executable at all by @CFiggers in https://github.com/CFiggers/janet-lsp/pull/19
+- Formatting
+  - Tweak to vendored copy of `spork/fmt` by @CFiggers in https://github.com/CFiggers/janet-lsp/pull/19
+- Diagnostics
+  - `eval-buffer` now starts with a clean environment on every evaluation (resolving many consistency issues) by @CFiggers in https://github.com/CFiggers/janet-lsp/pull/19
+  - Can now push diagnostics to clients that prefer not to request by issuing `testDocument/publishDiagnostics` RPC notifications by @CFiggers in https://github.com/CFiggers/janet-lsp/pull/18
+- Completion and Hover Definitions
+  - Bugs with jpm definitions resolved by @CFiggers in https://github.com/CFiggers/janet-lsp/pull/19
+- Signature helps
+  - Fix bugs in `sexp-at` (off-by-one and crash on unparenthesized top-level forms) by @CFiggers in https://github.com/CFiggers/janet-lsp/pull/19
+- RPC
+  - Can now send properly formatted LSP notifications (in addition to responses, needed for publishing diagnostics)by @CFiggers in https://github.com/CFiggers/janet-lsp/pull/19
+- Testing
+  - Migrated Judge tests from main.janet into a separate fileby @CFiggers in https://github.com/CFiggers/janet-lsp/pull/19
+- CLI
+  - `--debug` flag now works correctlyby @CFiggers in https://github.com/CFiggers/janet-lsp/pull/19
+- Misc
+  - Source code formatting and comment cleanup by @CFiggers in https://github.com/CFiggers/janet-lsp/pull/17
+
 ## 0.0.3 - 2024-01-09
 
 - Completion

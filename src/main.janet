@@ -147,7 +147,7 @@
   that this server provides so the client knows what it can request.
   ``
   [state params]
-  (logging/log (string/format "on-initialize called with these params: %m" params))
+  (comment (logging/log (string/format "on-initialize called with these params: %m" params)))
 
   (if-let [diagnostic? (get-in params ["capabilities" "textDocument" "diagnostic"])]
     (setdyn :push-diagnostics false)
@@ -161,7 +161,9 @@
                                                   :workspaceDiagnostics false}
                              :hoverProvider true
                              :signatureHelpProvider {:triggerCharacters [" "]}
-                             :documentFormattingProvider true}
+                             :documentFormattingProvider true
+                            #  :definitionProvider true
+                             }
               :serverInfo {:name "janet-lsp"
                            :version version}}])
 
@@ -190,6 +192,21 @@
   [state params]
   [:ok state :json/null])
 
+# (defn on-document-definition
+#   ``
+#   Called by the LSP client to request the location of a symbol's definition.
+#   ``
+#   [state params]
+#   (let [uri (get-in params ["textDocument" "uri"])
+#         content (get-in state [:documents uri :content])
+#         {"line" line "character" character} (get params "position")
+#         {:word define-word :range [start end]} (lookup/word-at {:line line :character character} content)]
+#     (if-let [[uri line col] ((dyn (symbol define-word) :source-map))]
+#       [:ok state {:uri uri 
+#                   :range {:start {:line (max 0 (dec line)) :character col}
+#                           :end {:line (max 0 (dec line)) :character col}}}]
+#       [:ok state :json/null])))
+
 (defn handle-message [message state]
   (let [id (get message "id")
         method (get message "method")
@@ -208,6 +225,7 @@
       "textDocument/signatureHelp" (on-document-signature-help state params)
       # "textDocument/references" (on-document-references state params) TODO: Implement this? See src/lsp/api.ts:103
       # "textDocument/documentSymbol" (on-document-symbols state params) TODO: Implement this? See src/lsp/api.ts:121
+      # "textDocument/definition" (on-document-definition state params)
       "janet/serverInfo" (on-janet-serverinfo state params)
       "shutdown" (on-shutdown state params)
       "exit" (on-exit state params)

@@ -227,7 +227,7 @@
   (file/write file response)
 
   # Flush response
-  (file/flush file))
+  (file/flush file)) 
 
 (defn read-message []
   (let [input (file/read stdin :line)
@@ -236,13 +236,14 @@
     (json/decode input))) 
 
 (defn message-loop [&named state]
+  (logging/log "Loop enter")
   (let [message (read-message)] 
     (logging/log (string/format "got: %q" message))
     (match (handle-message message state)
       [:ok new-state & response] (do
-                                 (logging/log "successful rpc")
-                                 (write-response stdout (rpc/success-response (get message "id") ;response))
-                                 (message-loop :state new-state))
+                                   (logging/log "successful rpc")
+                                   (write-response stdout (rpc/success-response (get message "id") ;response))
+                                   (message-loop :state new-state))
       [:noresponse new-state] (message-loop :state new-state)
 
       [:error new-state err] (printf "unhandled error response: %m" err)

@@ -231,11 +231,10 @@
       "exit" (on-exit state params)
       [:noresponse state])))
 
-(def line-ending "\r\n\r\n")
-
 (defn write-response [file response]
   # Write headers
-  (file/write file (string "Content-Length: " (length response) line-ending))
+  (file/write file (string "Content-Length: " (length response) (case (os/which)
+                                                                  :windows "\n\n" "\r\n\r\n")))
 
   # Write response
   (file/write file response)

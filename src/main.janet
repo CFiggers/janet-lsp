@@ -232,10 +232,6 @@
       [:noresponse state])))
 
 (def line-ending "\r\n\r\n")
-(def read-offset
-  (case (os/which)
-    :windows 1
-    2))
 
 (defn write-response [file response]
   # Write headers
@@ -248,9 +244,9 @@
   (file/flush file)) 
 
 (defn read-message []
-  (let [input (file/read stdin :line)
-        content-length (+ (parse-content-length input) read-offset)
-        input (file/read stdin content-length)]
+  (let [content-length-line (file/read stdin :line)
+        _ (file/read stdin :line)
+        input (file/read stdin (parse-content-length content-length-line))]
     (json/decode input))) 
 
 (defn message-loop [&named state]

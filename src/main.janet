@@ -295,7 +295,9 @@
 
 (defn start-language-server []
   (print "Starting LSP")
-  (when (dyn :debug) (spit "janetlsp.log.txt" ""))
+  (when (dyn :debug) 
+    (try (spit "janetlsp.log.txt" "") 
+      ([_] (logging/log "Tried to write to janetlsp.log txt, but couldn't"))))
 
   (merge-module root-env jpm-defs nil true)
   (setdyn :eval-env (make-env root-env))

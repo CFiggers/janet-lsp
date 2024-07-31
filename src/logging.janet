@@ -20,5 +20,6 @@
     (print (:print (dyn :client) output)))
 
   (when (dyn :debug)
-    (spit "janetlsp.log.txt" (string output "\n") :a)
+    (try (spit "janetlsp.log.txt" (string output "\n") :a) 
+      ([_]))
     (file/write stderr (string output "\n"))))

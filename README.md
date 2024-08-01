@@ -36,12 +36,15 @@ Desirable, but possibly more complicated/difficult features include:
 
 ## Clients (i.e. Editors)
 
-Currently, the only editor tested and known working with Janet LSP is [Visual Studio Code](https://code.visualstudio.com/), which you can try/take advantage of by installing the [Janet++](https://github.com/CFiggers/vscode-janet-plus-plus) extension [from the VS Code marketplace](https://marketplace.visualstudio.com/items?itemName=CalebFiggers.vscode-janet-plus-plus).
+Currently, Janet LSP is being regularly tested and is expected to work out of the box with two major editors:
+
+- [Visual Studio Code](https://code.visualstudio.com/), which you can try/take advantage of by installing the [Janet++](https://github.com/CFiggers/vscode-janet-plus-plus) extension [from the VS Code marketplace](https://marketplace.visualstudio.com/items?itemName=CalebFiggers.vscode-janet-plus-plus), and
+- [Neovim](https://neovim.io/), which ships with support for LSP servers.
 
 Other editors that implement LSP client protocols, either built-in or through editor extensions, include:
 
 - Emacs
-- vim/neovim
+- Vim
 - Sublime Text
 - Helix
 - Kakoune

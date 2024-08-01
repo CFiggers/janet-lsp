@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file.
 Format for entires is <version-string> - release date.
 
+## 0.0.6 - 2024-07-31
+
+- Core Functionality
+  - Factored out `line-ending` and `read-offset` functions/values by @CFiggers in https://github.com/CFiggers/janet-lsp/pull/25
+  - Fix bug with line endings (communication over `stdio` was broken on Widows) by @CFiggers in https://github.com/CFiggers/janet-lsp/pull/25
+- Logging
+  - Now fail gracefully when unable to write to `janetlsp.log.txt` by @CFiggers in https://github.com/CFiggers/janet-lsp/pull/25
+- Jump to Definition
+  - Preliminary work (not completed yet) by @CFiggers in https://github.com/CFiggers/janet-lsp/pull/25
+
 ## 0.0.5 - 2024-06-14
 
 - Diagnostics

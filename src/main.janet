@@ -13,7 +13,7 @@
 
 (use judge)
 
-(def version "0.0.5")
+(def version "0.0.6")
 
 (def jpm-defs (require "../libs/jpm-defs"))
 
@@ -147,7 +147,7 @@
   that this server provides so the client knows what it can request.
   ``
   [state params]
-  (logging/log (string/format "on-initialize called with these params: %m" params))
+  (comment (logging/log (string/format "on-initialize called with these params: %m" params)))
 
   (if-let [diagnostic? (get-in params ["capabilities" "textDocument" "diagnostic"])]
     (setdyn :push-diagnostics false)
@@ -161,7 +161,9 @@
                                                   :workspaceDiagnostics false}
                              :hoverProvider true
                              :signatureHelpProvider {:triggerCharacters [" "]}
-                             :documentFormattingProvider true}
+                             :documentFormattingProvider true
+                            #  :definitionProvider true
+                             }
               :serverInfo {:name "janet-lsp"
                            :version version}}])
 
@@ -190,6 +192,21 @@
   [state params]
   [:ok state :json/null])
 
+# (defn on-document-definition
+#   ``
+#   Called by the LSP client to request the location of a symbol's definition.
+#   ``
+#   [state params]
+#   (let [uri (get-in params ["textDocument" "uri"])
+#         content (get-in state [:documents uri :content])
+#         {"line" line "character" character} (get params "position")
+#         {:word define-word :range [start end]} (lookup/word-at {:line line :character character} content)]
+#     (if-let [[uri line col] ((dyn (symbol define-word) :source-map))]
+#       [:ok state {:uri uri 
+#                   :range {:start {:line (max 0 (dec line)) :character col}
+#                           :end {:line (max 0 (dec line)) :character col}}}]
+#       [:ok state :json/null])))
+
 (defn handle-message [message state]
   (let [id (get message "id")
         method (get message "method")
@@ -208,41 +225,38 @@
       "textDocument/signatureHelp" (on-document-signature-help state params)
       # "textDocument/references" (on-document-references state params) TODO: Implement this? See src/lsp/api.ts:103
       # "textDocument/documentSymbol" (on-document-symbols state params) TODO: Implement this? See src/lsp/api.ts:121
+      # "textDocument/definition" (on-document-definition state params)
       "janet/serverInfo" (on-janet-serverinfo state params)
       "shutdown" (on-shutdown state params)
       "exit" (on-exit state params)
       [:noresponse state])))
 
-(def line-ending "\r\n\r\n")
-(def read-offset
-  (case (os/which)
-    :windows 1
-    2))
-
 (defn write-response [file response]
   # Write headers
-  (file/write file (string "Content-Length: " (length response) line-ending))
+  (file/write file (string "Content-Length: " (length response) (case (os/which)
+                                                                  :windows "\n\n" "\r\n\r\n")))
 
   # Write response
   (file/write file response)
 
   # Flush response
-  (file/flush file))
+  (file/flush file)) 
 
 (defn read-message []
-  (let [input (file/read stdin :line)
-        content-length (+ (parse-content-length input) read-offset)
-        input (file/read stdin content-length)]
+  (let [content-length-line (file/read stdin :line)
+        _ (file/read stdin :line)
+        input (file/read stdin (parse-content-length content-length-line))]
     (json/decode input))) 
 
 (defn message-loop [&named state]
+  (logging/log "Loop enter")
   (let [message (read-message)] 
     (logging/log (string/format "got: %q" message))
     (match (handle-message message state)
       [:ok new-state & response] (do
-                                 (logging/log "successful rpc")
-                                 (write-response stdout (rpc/success-response (get message "id") ;response))
-                                 (message-loop :state new-state))
+                                   (logging/log "successful rpc")
+                                   (write-response stdout (rpc/success-response (get message "id") ;response))
+                                   (message-loop :state new-state))
       [:noresponse new-state] (message-loop :state new-state)
 
       [:error new-state err] (printf "unhandled error response: %m" err)
@@ -280,7 +294,9 @@
 
 (defn start-language-server []
   (print "Starting LSP")
-  (when (dyn :debug) (spit "janetlsp.log.txt" ""))
+  (when (dyn :debug) 
+    (try (spit "janetlsp.log.txt" "") 
+      ([_] (logging/log "Tried to write to janetlsp.log txt, but couldn't"))))
 
   (merge-module root-env jpm-defs nil true)
   (setdyn :eval-env (make-env root-env))

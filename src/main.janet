@@ -25,7 +25,7 @@
 
 (defn run-diagnostics [uri content]
   (let [items @[]
-        eval-result (eval/eval-buffer content (path/basename uri))]
+        eval-result (eval/eval-buffer content (path/relpath (os/cwd) uri))]
 
     (each res eval-result
       (match res
@@ -162,8 +162,7 @@
                              :hoverProvider true
                              :signatureHelpProvider {:triggerCharacters [" "]}
                              :documentFormattingProvider true
-                            #  :definitionProvider true
-                             }
+                             :definitionProvider true}
               :serverInfo {:name "janet-lsp"
                            :version version}}])
 
@@ -192,20 +191,38 @@
   [state params]
   [:ok state :json/null])
 
-# (defn on-document-definition
-#   ``
-#   Called by the LSP client to request the location of a symbol's definition.
-#   ``
-#   [state params]
-#   (let [uri (get-in params ["textDocument" "uri"])
-#         content (get-in state [:documents uri :content])
-#         {"line" line "character" character} (get params "position")
-#         {:word define-word :range [start end]} (lookup/word-at {:line line :character character} content)]
-#     (if-let [[uri line col] ((dyn (symbol define-word) :source-map))]
-#       [:ok state {:uri uri 
-#                   :range {:start {:line (max 0 (dec line)) :character col}
-#                           :end {:line (max 0 (dec line)) :character col}}}]
-#       [:ok state :json/null])))
+(defn on-document-definition
+  ``
+  Called by the LSP client to request the location of a symbol's definition.
+  ``
+  [state params]
+  (let [request-uri (get-in params ["textDocument" "uri"])
+        content (get-in state [:documents request-uri :content])
+        {"line" line "character" character} (get params "position")
+        {:word define-word :range [start end]} (lookup/word-at {:line line :character character} content)]
+    (comment (logging/log (string/format `` 
+                                -------------------------
+                                uri is: %s
+                                content length is: %d
+                                line is: %d
+                                character is: %d
+                                define word is: %s
+                                start is: %d
+                                end is: %d
+                                -------------------------
+                                ``
+                                         request-uri (length content) line character define-word start end))
+             (logging/log (string/format "symbol is: %s" (symbol define-word)))
+             (logging/log (string/format "dyn returns: %m" ((dyn :eval-env) (symbol define-word))))
+             # (logging/log (string/format "entire table is: %m" (table/proto-flatten (curenv))))
+             (logging/log (string/format "`:source-map` is: %m" (((dyn :eval-env) (symbol define-word)) :source-map))))
+    (if-let [[uri line col] (((dyn :eval-env) (symbol define-word)) :source-map)
+             found (os/stat (path/abspath (uri)))
+             filepath (string "file://" (path/abspath uri))]
+      [:ok state {:uri filepath
+                  :range {:start {:line (max 0 (dec line)) :character col}
+                          :end {:line (max 0 (dec line)) :character col}}}]
+      [:ok state :json/null])))
 
 (defn handle-message [message state]
   (let [id (get message "id")
@@ -225,7 +242,7 @@
       "textDocument/signatureHelp" (on-document-signature-help state params)
       # "textDocument/references" (on-document-references state params) TODO: Implement this? See src/lsp/api.ts:103
       # "textDocument/documentSymbol" (on-document-symbols state params) TODO: Implement this? See src/lsp/api.ts:121
-      # "textDocument/definition" (on-document-definition state params)
+      "textDocument/definition" (on-document-definition state params)
       "janet/serverInfo" (on-janet-serverinfo state params)
       "shutdown" (on-shutdown state params)
       "exit" (on-exit state params)
@@ -255,6 +272,7 @@
     (match (handle-message message state)
       [:ok new-state & response] (do
                                    (write-response stdout (rpc/success-response (get message "id") ;response))
+                                   (logging/log "successful rpc")
                                    (message-loop :state new-state))
       [:noresponse new-state] (message-loop :state new-state)
 

@@ -35,7 +35,7 @@
                      {:start {:line (max 0 (dec line)) :character col}
                       :end {:line (max 0 (dec line)) :character col}}
                      :message message})))
-    
+
     items))
 
 (defn on-document-change
@@ -48,18 +48,18 @@
   (let [content (get-in params ["contentChanges" 0 "text"])
         uri (get-in params ["textDocument" "uri"])]
     (put-in state [:documents uri] @{:content content})
-    
+
     (if (dyn :push-diagnostics)
       (let [d (run-diagnostics uri content)]
         [:ok state {:method "textDocument/publishDiagnostics"
                     :params {:uri uri
-                             :diagnostics d}} :notify true]) 
+                             :diagnostics d}} :notify true])
       [:noresponse state])))
 
 (defn on-document-diagnostic [state params]
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
-        diagnostics (run-diagnostics uri content)] 
+        diagnostics (run-diagnostics uri content)]
 
     [:ok state {:kind "full"
                 :items diagnostics}]))
@@ -74,9 +74,9 @@
     (if (= content new-content)
       [:ok state :json/null]
       (do (put-in state [:documents uri] {:content new-content})
-          [:ok state [{:range {:start {:line 0 :character 0}
-                               :end {:line 1000000 :character 1000000}}
-                       :newText new-content}]]))))
+        [:ok state [{:range {:start {:line 0 :character 0}
+                             :end {:line 1000000 :character 1000000}}
+                     :newText new-content}]]))))
 
 (defn on-document-open [state params]
   (let [content (get-in params ["textDocument" "text"])
@@ -240,21 +240,20 @@
   (file/write file response)
 
   # Flush response
-  (file/flush file)) 
+  (file/flush file))
 
 (defn read-message []
   (let [content-length-line (file/read stdin :line)
         _ (file/read stdin :line)
         input (file/read stdin (parse-content-length content-length-line))]
-    (json/decode input))) 
+    (json/decode input)))
 
 (defn message-loop [&named state]
   (logging/log "Loop enter")
-  (let [message (read-message)] 
+  (let [message (read-message)]
     (logging/log (string/format "got: %q" message))
     (match (handle-message message state)
       [:ok new-state & response] (do
-                                   (logging/log "successful rpc")
                                    (write-response stdout (rpc/success-response (get message "id") ;response))
                                    (message-loop :state new-state))
       [:noresponse new-state] (message-loop :state new-state)
@@ -294,8 +293,8 @@
 
 (defn start-language-server []
   (print "Starting LSP")
-  (when (dyn :debug) 
-    (try (spit "janetlsp.log.txt" "") 
+  (when (dyn :debug)
+    (try (spit "janetlsp.log.txt" "")
       ([_] (logging/log "Tried to write to janetlsp.log txt, but couldn't"))))
 
   (merge-module root-env jpm-defs nil true)

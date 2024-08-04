@@ -10,5 +10,5 @@
       {:jsonrpc "2.0"
        :id id
        :result result}))
-  (logging/log (string/format "sending: %m" rpc))
+  (logging/info (string/format "sending: %m" rpc) [:rpc] 2)
   (jayson/encode rpc))

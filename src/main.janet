@@ -32,6 +32,7 @@
                       (if (string/has-prefix? "file:" uri)
                         (string/slice uri 5) uri)))]
     
+    (logging/info (string/format "`eval-buffer` returned: %m" eval-result) [:evaluation])
 
     (each res eval-result
       (match res
@@ -42,6 +43,7 @@
                       :end {:line (max 0 (dec line)) :character col}}
                      :message message})))
 
+    (logging/info (string/format "`run-diagnostics` is returning these errors: %m" items) [:evaluation])
     items))
 
 (defn on-document-change
@@ -56,33 +58,41 @@
     (put-in state [:documents uri] @{:content content})
 
     (if (dyn :push-diagnostics)
-      (let [d (run-diagnostics uri content)]
-        [:ok state {:method "textDocument/publishDiagnostics"
-                    :params {:uri uri
-                             :diagnostics d}} :notify true])
+      (let [d (run-diagnostics uri content)
+            message {:method "textDocument/publishDiagnostics"
+                     :params {:uri uri
+                              :diagnostics d}}]
+        (logging/message message [:diagnostics])
+        [:ok state message :notify true])
       [:noresponse state])))
 
 (defn on-document-diagnostic [state params]
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
-        diagnostics (run-diagnostics uri content)]
-
-    [:ok state {:kind "full"
-                :items diagnostics}]))
+        diagnostics (run-diagnostics uri content)
+        message {:kind "full"
+                 :items diagnostics}]
+    (logging/message message [:diagnostics])
+    [:ok state message]))
 
 (defn on-document-formatting [state params]
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
         new-content (freeze (fmt/format (string/slice content)))]
-    (comment logging/log (string/format "old content: %m" content))
-    (comment logging/log (string/format "new content: %m" new-content))
-    (comment logging/log (string/format "formatting changed something: %m" (not= content new-content)))
+    (logging/info (string/format "old content: %m" content) [:formatting] 2)
+    (logging/info (string/format "new content: %m" new-content) [:formatting] 2)
+    (logging/info (string/format "formatting changed something: %m" (not= content new-content)) [:formatting] 2)
     (if (= content new-content)
-      [:ok state :json/null]
-      (do (put-in state [:documents uri] {:content new-content})
-        [:ok state [{:range {:start {:line 0 :character 0}
-                             :end {:line 1000000 :character 1000000}}
-                     :newText new-content}]]))))
+      (do
+        (logging/info "No changes" [:formatting])
+        [:ok state :json/null])
+      (do 
+        (put-in state [:documents uri] {:content new-content})
+        (let [message [{:range {:start {:line 0 :character 0}
+                                :end {:line 1000000 :character 1000000}}
+                        :newText new-content}]]
+          (logging/message message [:formatting])
+          [:ok state message])))))
 
 (defn on-document-open [state params]
   (let [content (get-in params ["textDocument" "text"])
@@ -91,6 +101,7 @@
     (put-in state [:documents uri] @{:content content})
     (setdyn :eval-env (make-env root-env))
     (run-diagnostics uri content))
+  (logging/info "Document opened" [:open] 1)
   [:noresponse state])
 
 (defn binding-type [x]
@@ -111,33 +122,40 @@
   {:label name :kind (binding-type name)})
 
 (defn on-completion [state params]
-  [:ok state {:isIncomplete true
-              :items (seq [bind :in (all-bindings (dyn :eval-env))] (binding-to-lsp-item bind))}])
+  (let [message {:isIncomplete true
+                 :items (seq [bind :in (all-bindings (dyn :eval-env))] (binding-to-lsp-item bind))}]
+    (logging/message message [:completion] 1)
+    [:ok state message]))
 
 (defn on-completion-item-resolve [state params]
-  (let [label (get params "label")]
-    [:ok state {:label label
-                :documentation {:kind "markdown"
-                                :value (doc/my-doc* (symbol label) (dyn :eval-env))}}]))
+  (let [label (get params "label")
+        message {:label label
+                 :documentation {:kind "markdown"
+                                 :value (doc/my-doc* (symbol label) (dyn :eval-env))}}]
+    (logging/message message [:completion] 1)
+    [:ok state message]))
 
 (defn on-document-hover [state params]
+  (logging/info (string/format "Current `:eval-env` is: %m" (dyn :eval-env)) [:evaluation :priority])
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
         {"line" line "character" character} (get params "position")
         {:word hover-word :range [start end]} (lookup/word-at {:line line :character character} content)
-        hover-text (doc/my-doc* (symbol hover-word) (dyn :eval-env))]
-    [:ok state (match hover-word
-                 nil {}
-                 _ {:contents {:kind "markdown"
-                               :value hover-text}
-                    :range {:start {:line line :character start}
-                            :end {:line line :character end}}})]))
+        hover-text (doc/my-doc* (symbol hover-word) (dyn :eval-env))
+        message (match hover-word
+                  nil {}
+                  _ {:contents {:kind "markdown"
+                                :value hover-text}
+                     :range {:start {:line line :character start}
+                             :end {:line line :character end}}})]
+    (logging/message message [:hover] 1)
+    [:ok state message]))
 
 (defn on-document-signature-help [state params]
-  (comment logging/log (string "on-signature-help state: "))
-  (comment logging/log (string/format "%q" state))
-  (comment logging/log (string "on-signature-help params: "))
-  (comment logging/log (string/format "%q" params))
+  (logging/info (string "on-signature-help state: ") [:signature])
+  (logging/info (string/format "%q" state) [:signature])
+  (logging/info (string "on-signature-help params: ") [:signature])
+  (logging/info (string/format "%q" params) [:signature])
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
         {"line" line "character" character} (get params "position")
@@ -145,8 +163,11 @@
         function-symbol (or (first (peg/match '(* "(" (any :s) (<- (to " "))) sexp-text)) "none")
         signature (or (doc/get-signature (symbol function-symbol)) "not found")]
     (case signature
-      "not found" [:ok state :json/null]
-      [:ok state {:signatures [{:label signature}]}])))
+      "not found" 
+      (do (logging/info "No signature found" [:signature]) [:ok state :json/null])
+      (let [message {:signatures [{:label signature}]}] 
+        (logging/message message [:signature])
+        [:ok state message]))))
 
 (defn on-initialize
   `` 
@@ -154,24 +175,25 @@
   that this server provides so the client knows what it can request.
   ``
   [state params]
-  (comment (logging/log (string/format "on-initialize called with these params: %m" params)))
-
+  (logging/info (string/format "on-initialize called with these params: %m" params) [:initialize] 2)
   (if-let [diagnostic? (get-in params ["capabilities" "textDocument" "diagnostic"])]
     (setdyn :push-diagnostics false)
     (setdyn :push-diagnostics true))
 
-  [:ok state {:capabilities {:completionProvider {:resolveProvider true}
-                             :textDocumentSync {:openClose true
-                                                :change 1 # send the Full document https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentSyncKind
-                                                }
-                             :diagnosticProvider {:interFileDependencies true
-                                                  :workspaceDiagnostics false}
-                             :hoverProvider true
-                             :signatureHelpProvider {:triggerCharacters [" "]}
-                             :documentFormattingProvider true
-                             :definitionProvider true}
-              :serverInfo {:name "janet-lsp"
-                           :version version}}])
+  (let [message {:capabilities {:completionProvider {:resolveProvider true}
+                                :textDocumentSync {:openClose true
+                                                   :change 1 # send the Full document https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentSyncKind
+                                                   }
+                                :diagnosticProvider {:interFileDependencies true
+                                                     :workspaceDiagnostics false}
+                                :hoverProvider true
+                                :signatureHelpProvider {:triggerCharacters [" "]}
+                                :documentFormattingProvider true
+                                :definitionProvider true}
+                 :serverInfo {:name "janet-lsp"
+                              :version version}}]
+    (logging/message message [:initialize] 1)
+    [:ok state message]))
 
 (defn on-shutdown
   ``
@@ -179,6 +201,7 @@
   ``
   [state params]
   (setdyn :shutdown-received true)
+  (logging/info "Shutting down" [:shutdown])
   [:ok state :json/null])
 
 (defn on-exit
@@ -188,6 +211,7 @@
   [state params]
   (unless (dyn :shutdown-received)
     (ev/sleep 2)
+    (logging/info "Shutting down" [:exit])
     (quit 1))
   [:exit])
 
@@ -207,7 +231,7 @@
         content (get-in state [:documents request-uri :content])
         {"line" line "character" character} (get params "position")
         {:word define-word :range [start end]} (lookup/word-at {:line line :character character} content)]
-    (comment (logging/log (string/format `` 
+    (logging/info (string/format ``
                                 -------------------------
                                 uri is: %s
                                 content length is: %d
@@ -218,24 +242,28 @@
                                 end is: %d
                                 -------------------------
                                 ``
-                                         request-uri (length content) line character define-word start end))
-             (logging/log (string/format "symbol is: %s" (symbol define-word)))
-             (logging/log (string/format "dyn returns: %m" ((dyn :eval-env) (symbol define-word))))
-             # (logging/log (string/format "entire table is: %m" (table/proto-flatten (curenv))))
-             (logging/log (string/format "`:source-map` is: %m" (((dyn :eval-env) (symbol define-word)) :source-map))))
+                                         request-uri (length content) line character define-word start end) :define 2)
+    (logging/info (string/format "symbol is: %s" (symbol define-word)) [:define] 2)
+    (logging/info (string/format "dyn returns: %m" ((dyn :eval-env) (symbol define-word))) [:define] 2)
+    (logging/info (string/format "`:source-map` is: %m" (((dyn :eval-env) (symbol define-word)) :source-map)) [:define] 2)
     (if-let [[uri line col] (((dyn :eval-env) (symbol define-word)) :source-map)
              found (os/stat (path/abspath (uri)))
-             filepath (string "file://" (path/abspath uri))]
-      [:ok state {:uri filepath
-                  :range {:start {:line (max 0 (dec line)) :character col}
-                          :end {:line (max 0 (dec line)) :character col}}}]
-      [:ok state :json/null])))
+             filepath (string "file://" (path/abspath uri))
+             message {:uri filepath
+                      :range {:start {:line (max 0 (dec line)) :character col}
+                              :end {:line (max 0 (dec line)) :character col}}}]
+      (do
+        (logging/message message [:definition])
+        [:ok state message])
+      (do 
+        (logging/info "Couldn't find definition" [:definition])
+        [:ok state :json/null]))))
 
 (defn handle-message [message state]
   (let [id (get message "id")
         method (get message "method")
         params (get message "params")]
-    (logging/log (string/format "handle-message received method request: %m" method))
+    (logging/info (string/format "handle-message received method request: `%s`" method) [:core] 0 id)
     (case method
       "initialize" (on-initialize state params)
       "initialized" [:noresponse state]
@@ -253,7 +281,9 @@
       "janet/serverInfo" (on-janet-serverinfo state params)
       "shutdown" (on-shutdown state params)
       "exit" (on-exit state params)
-      [:noresponse state])))
+      (do 
+        (logging/info (string/format "Received unrecognized RPC: %m" method) [:handle] 1)
+        [:noresponse state]))))
 
 (defn write-response [file response]
   # Write headers
@@ -273,13 +303,13 @@
     (json/decode input)))
 
 (defn message-loop [&named state]
-  (logging/log "Loop enter")
+  (logging/info "Loop enter" [:core] 1)
   (let [message (read-message)]
-    (logging/log (string/format "got: %q" message))
+    (logging/info (string/format "got: %q" message) [:core] 1)
     (match (handle-message message state)
       [:ok new-state & response] (do
                                    (write-response stdout (rpc/success-response (get message "id") ;response))
-                                   (logging/log "successful rpc")
+                                   (logging/info "successful rpc" [:core] (get message "id"))
                                    (message-loop :state new-state))
       [:noresponse new-state] (message-loop :state new-state)
 
@@ -320,7 +350,7 @@
   (print "Starting LSP")
   (when (dyn :debug)
     (try (spit "janetlsp.log.txt" "")
-      ([_] (logging/log "Tried to write to janetlsp.log txt, but couldn't"))))
+      ([_] (logging/err "Tried to write to janetlsp.log txt, but couldn't" :core))))
 
   (merge-module root-env jpm-defs nil true)
   (setdyn :eval-env (make-env root-env))
@@ -359,14 +389,16 @@
   (when (or (has-value? parsed-args "--version")
             (has-value? parsed-args "-v"))
     (print "Janet LSP v" version)
-    (os/exit 0))
-
+    (os/exit 0)) 
+  
   (cmd/run
     (cmd/fn
       "A Language Server (LSP) for the Janet Programming Language."
       [[--dont-search-jpm-tree -j] (flag) "Whether to search `jpm_tree` for modules."
        --stdio (flag) "Use STDIO."
        [--debug -d] (flag) "Print debug messages."
+       [--log-level -l] (optional :int++ 0) "What level of logging to display. Defaults to 0."
+       [--log-category -L] (tuple :string) "Enable logging by category. For multiple categories, repeat the flag."
        [--console -c] (flag) "Start a debug console instead of starting the Language Server."
        [--debug-port -p] (optional :int++) "What port to start or connect to the debug console on. Defaults to 8037."]
 
@@ -380,7 +412,9 @@
          :debug-port debug-port})
 
       (setdyn :opts opts)
-      (when debug (setdyn :debug true))
+      (when debug (setdyn :debug true)) #(setdyn :debug true)
+      (setdyn :log-level log-level) #(setdyn :log-level 1)
+      (setdyn :log-categories @[:core ;(map keyword log-category)]) #(setdyn :log-categories [:core :priority])
       (setdyn :out stderr)
 
       (if console

@@ -53,6 +53,9 @@
           (thunk))))))
 
 (defn eval-buffer [str &opt filename]
+  (logging/info (string/format "`eval-buffer` received filename: `%s`" filename) [:evaluation] 1)
+  (logging/info (string/format "`eval-buffer` received str: `%s`" str) [:evaluation] 2)
+
   (default filename "eval.janet")
   (var state (string str))
   (defn chunks [buf parser]
@@ -61,27 +64,28 @@
     (when ret
       (buffer/push-string buf str)
       (buffer/push-string buf "\n")))
-  
+
   (setdyn :eval-env (make-env root-env))
 
   (def eval-fiber
     (fiber/new
       |(do (var returnval @[])
-           (try (run-context {:chunks chunks
-                              :on-compile-error (fn compile-error [msg errf where line col]
-                                                  (array/push returnval {:message msg
-                                                                         :location [line col]}))
-                              :on-parse-error (fn parse-error [p x]
-                                                (array/push returnval {:message (parser/error p)
-                                                                       :location (parser/where p)}))
-                              :evaluator flycheck-evaluator
-                              :fiber-flags :i
-                              :source filename})
-             ([err]
-               (array/push returnval {:message err
-                                      :location [0 0]})))
-           returnval) :e (dyn :eval-env)))
+         (try (run-context {:chunks chunks
+                            :on-compile-error (fn compile-error [msg errf where line col]
+                                                (array/push returnval {:message msg
+                                                                       :location [line col]}))
+                            :on-parse-error (fn parse-error [p x]
+                                              (array/push returnval {:message (parser/error p)
+                                                                     :location (parser/where p)}))
+                            :evaluator flycheck-evaluator
+                            :fiber-flags :i
+                            :source filename})
+           ([err]
+             (array/push returnval {:message err
+                                    :location [0 0]})))
+         returnval) :e (dyn :eval-env)))
   (def eval-fiber-return (resume eval-fiber))
+  (logging/info (string/format "`eval-buffer` is returning: %m" eval-fiber-return) [:evaluation] 2)
   eval-fiber-return)
 
 # tests

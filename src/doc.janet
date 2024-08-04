@@ -2,7 +2,7 @@
 (import ./logging)
 
 (defn make-module-entry [x]
-  (comment logging/log (string/format "make-module-entry on %m" x))
+  (logging/info (string/format "make-module-entry on %m" x) [:hover] 1)
   (let [bind-type (cond
                     (x :redef) (type (in (x :ref) 0))
                     (x :ref) (string :var " (" (type (in (x :ref) 0)) ")")
@@ -79,7 +79,7 @@
 (defn get-signature
   "Look up the signature of a symbol in a given environment."
   [sym]
-  (comment logging/log (string/format "get-signature tried %m" ((dyn :eval-env) sym)))
+  (logging/info (string/format "get-signature tried %m" ((dyn :eval-env) sym)) [:hover] 1)
   (if-let [x ((dyn :eval-env) sym)]
     (-> (string/split "\n" (x :doc))
         (array/slice nil 1)
@@ -93,12 +93,12 @@
     (if (has-value? '[break def do fn if quasiquote quote
                       set splice unquote upscope var while] sym)
       (string "(" sym " ... )")
-      (print "symbol " sym " not found."))))
+      (logging/info (string/format "Symbol %m not found" sym) [:hover]))))
 
 (defn my-doc*
   "Get the documentation for a symbol in a given environment."
   [sym env]
-  (comment logging/log (string/format "my-doc* tried: %m" ((dyn :eval-env) sym)))
+  (logging/info (string/format "my-doc* tried: %m" ((dyn :eval-env) sym)) [:hover] 1)
   (if-let [x ((dyn :eval-env) sym)]
     (make-module-entry x)
     (if (has-value? '[break def do fn if quasiquote quote
@@ -112,18 +112,18 @@
             nil
             mff-return))
 
-        # (logging/log (string/format ":eval-env has this in module/cache: %m" ((dyn :eval-env) 'module/cache)))
+        (logging/info (string/format ":eval-env has this in module/cache: %m" ((dyn :eval-env) 'module/cache)) [:hover] 1)
 
-        # (logging/log (string/format "module-find-fiber got %m for %m" mff-return sym))
+        (logging/info (string/format "module-find-fiber got %m for %m" mff-return sym) [:hover] 1)
         (def module-cache-fiber (fiber/new |(in module/cache fullpath) :e (dyn :eval-env)))
         (def mcf-return (resume module-cache-fiber))
         (cond
-          (= :error (fiber/status module-cache-fiber)) (print "symbol " sym " not found.")
+          (= :error (fiber/status module-cache-fiber)) (logging/err (string/format "symbol %m not found." sym) [:hover])
           mcf-return (make-module-entry {:module true
                                          :kind mod-kind
                                          :source-map [fullpath nil nil]
                                          :doc (in mcf-return :doc)})
-          (print "symbol " sym " not found."))))))
+          (logging/info (string/format "symbol %m not found." sym) [:hover]))))))
 
 (deftest "testing my-doc*: string/trim"
   (setdyn :eval-env (make-env root-env))

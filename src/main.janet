@@ -88,8 +88,9 @@
   (let [content (get-in params ["textDocument" "text"])
         uri (get-in params ["textDocument" "uri"])]
 
-    (put-in state [:documents uri] @{:content content}))
-
+    (put-in state [:documents uri] @{:content content})
+    (setdyn :eval-env (make-env root-env))
+    (run-diagnostics uri content))
   [:noresponse state])
 
 (defn binding-type [x]

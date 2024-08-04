@@ -25,7 +25,13 @@
 
 (defn run-diagnostics [uri content]
   (let [items @[]
-        eval-result (eval/eval-buffer content (path/relpath (os/cwd) uri))]
+        eval-result (eval/eval-buffer
+                     content
+                     (path/relpath
+                      (os/cwd)
+                      (if (string/has-prefix? "file:" uri)
+                        (string/slice uri 5) uri)))]
+    
 
     (each res eval-result
       (match res

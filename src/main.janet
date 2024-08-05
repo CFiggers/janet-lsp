@@ -64,7 +64,7 @@
                      :params {:uri uri
                               :diagnostics diagnostics}}]
         (put-in state [:documnts uri :eval-env] env)
-        (logging/message message [:diagnostics :priority])
+        (logging/message message [:diagnostics])
         [:ok state message :notify true])
       [:noresponse state])))
 
@@ -103,13 +103,13 @@
         [diagnostics env] (run-diagnostics uri content)]
     (put-in state [:documents uri] @{:content content
                                      :eval-env env})
-    (logging/info "Document opened" [:open :priority] 1)
+    (logging/info "Document opened" [:open] 1)
     (if (dyn :push-diagnostics)
       (let [message {:method "textDocument/publishDiagnostics"
                      :params {:uri uri
                               :diagnostics diagnostics}}]
         (put-in state [:documnts uri :eval-env] env)
-        (logging/message message [:diagnostics :priority])
+        (logging/message message [:diagnostics])
         [:ok state message :notify true])
       [:noresponse state])))
 
@@ -272,13 +272,13 @@
                                 end is: %d
                                 -------------------------
                                 ``
-                                         request-uri (length content) line character define-word start end) :define 2)
-    (logging/info (string/format "symbol is: %s" (symbol define-word)) [:define] 2)
-    (logging/info (string/format "eval-env is: %m" (eval-env (symbol define-word))) [:define] 2)
-    (logging/info (string/format "`:source-map` is: %m" ((eval-env (symbol define-word)) :source-map)) [:define] 2)
+                                         request-uri (length content) line character define-word start end) [:definition] 2)
+    (logging/info (string/format "symbol is: %s" (symbol define-word)) [:definition] 2)
+    (logging/info (string/format "eval-env is: %m" (eval-env (symbol define-word))) [:definition] 2)
+    (logging/info (string/format "`:source-map` is: %m" ((eval-env (symbol define-word)) :source-map)) [:definition] 2)
     (if-let [[uri line col] ((eval-env (symbol define-word)) :source-map)
-             found (os/stat (path/abspath (uri)))
-             filepath (string "file://" (path/abspath uri))
+             found (os/stat (path/abspath uri))
+             filepath (string "file:" (path/abspath uri))
              message {:uri filepath
                       :range {:start {:line (max 0 (dec line)) :character col}
                               :end {:line (max 0 (dec line)) :character col}}}]
@@ -288,6 +288,10 @@
       (do 
         (logging/info "Couldn't find definition" [:definition])
         [:ok state :json/null]))))
+
+(defn on-set-trace [state params]
+  (logging/info (string/format "on-set-trace: %m" params) [:settrace] 2)
+  [:noresponse state])
 
 (defn handle-message [message state]
   (let [id (get message "id")
@@ -311,6 +315,7 @@
       "janet/serverInfo" (on-janet-serverinfo state params)
       "shutdown" (on-shutdown state params)
       "exit" (on-exit state params)
+      "$/setTrace" (on-set-trace state params)
       (do 
         (logging/info (string/format "Received unrecognized RPC: %m" method) [:handle] 1)
         [:noresponse state]))))
@@ -334,9 +339,9 @@
 
 (defn message-loop [&named state]
   (logging/info "Loop enter" [:core] 1)
-  (logging/info (string/format "current state is: %m" state) [:priority] 2)
+  (logging/info (string/format "current state is: %m" state) [:priority] 3)
   (let [message (read-message)]
-    (logging/info (string/format "got: %q" message) [:core] 2)
+    (logging/info (string/format "got: %q" message) [:core] 3)
     (match (handle-message message state)
       [:ok new-state & response] (do
                                    (write-response stdout (rpc/success-response (get message "id") ;response))

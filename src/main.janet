@@ -304,8 +304,9 @@
 
 (defn message-loop [&named state]
   (logging/info "Loop enter" [:core] 1)
+  (logging/info (string/format "current state is: %m" state) [:priority] 2)
   (let [message (read-message)]
-    (logging/info (string/format "got: %q" message) [:core] 1)
+    (logging/info (string/format "got: %q" message) [:core] 2)
     (match (handle-message message state)
       [:ok new-state & response] (do
                                    (write-response stdout (rpc/success-response (get message "id") ;response))
@@ -350,7 +351,7 @@
   (print "Starting LSP")
   (when (dyn :debug)
     (try (spit "janetlsp.log.txt" "")
-      ([_] (logging/err "Tried to write to janetlsp.log txt, but couldn't" :core))))
+      ([_] (logging/err "Tried to write to janetlsp.log txt, but couldn't" [:core]))))
 
   (merge-module root-env jpm-defs nil true)
   (setdyn :eval-env (make-env root-env))

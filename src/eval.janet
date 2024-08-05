@@ -107,7 +107,7 @@
 
 # check for side effects
 (deftest "test eval-buffer: (pp 42)"
-  (test (eval-buffer "(pp 42)") @[]) "test.janet")
+  (test (eval-buffer "(pp 42)") [@[] @{:current-file "eval.janet"}]) "test.janet")
 
 (deftest "test eval-buffer: ()"
   (test (eval-buffer "()" "test.janet")
@@ -128,7 +128,7 @@
      @{:current-file "test.janet"}]))
 
 (deftest "does not error because string/trim is a cfunction"
-  (test (eval-buffer "(string/trim )") @[]) "test.janet")
+  (test (eval-buffer "(string/trim )") [@[] @{:current-file "eval.janet"}]) "test.janet")
 
 (deftest "should give a parser error 2"
   (test (eval-buffer "(freeze )" "test.janet")

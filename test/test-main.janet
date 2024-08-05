@@ -8,12 +8,12 @@
   (test (main/parse-content-length "0123:456::::789") 456))
 
 (deftest "test binding-to-lsp-item"
-  (setdyn :eval-env (table/proto-flatten (make-env root-env)))
+  (def eval-env (table/proto-flatten (make-env root-env)))
 
   (def bind-fiber (fiber/new |(do (defglobal "anil" nil)
                                   (defglobal "hello" 'world)
                                   (defglobal "atuple" [:a 1])
-                                  true) :e (dyn :eval-env)))
+                                  true) :e eval-env))
   (def bf-return (resume bind-fiber))
 
   (def test-cases @[['hello :symbol] [true :boolean] [% :function]
@@ -25,7 +25,7 @@
                     [@[:a 1] :array] # [(coro) :fiber]
                     ['anil :nil]])
 
-  (test (map (juxt 1 |(main/binding-to-lsp-item (first $))) test-cases)
+  (test (map (juxt 1 |(main/binding-to-lsp-item (first $) eval-env)) test-cases)
         @[[:symbol    {:kind 12 :label hello}]
           [:boolean   {:kind 6  :label true}]
           [:function  {:kind 3  :label @%}]
@@ -56,8 +56,10 @@
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jayson.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-main.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-lookup.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/scratch.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-format-file-after.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-format-file-before.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-integration.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/build/janet-lsp.jimage"]))
 
 (deftest "test find-all-module-files"
@@ -74,8 +76,10 @@
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/libs/jayson.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-main.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-lookup.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/scratch.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-format-file-after.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-format-file-before.janet"
+      "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-integration.janet"
       "/home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/build/janet-lsp.jimage"]))
 
 (deftest "test find-unique-paths"

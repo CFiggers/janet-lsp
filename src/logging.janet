@@ -1,3 +1,5 @@
+(use judge)
+
 (import spork/rpc)
 
 (defn log [output categories &opt level]
@@ -6,7 +8,7 @@
     (def opts (dyn :opts)) 
 
     (def host "127.0.0.1")
-    (def port (if (opts :port) (string (opts :port)) "8037"))
+    (def port (if (and opts (opts :port)) (string (opts :port)) "8037"))
 
     (setdyn :client (try (rpc/client host port) ([_] "No debug console detected"))))
 
@@ -40,7 +42,8 @@
 
     (try (spit "janetlsp.log.txt" (string output "\n") :a)
          ([_]))
-    (file/write stderr (string output "\n"))))
+    (file/write stderr (string output "\n"))
+    nil))
 
 (defmacro info [output categories &opt level id]
   (with-syms [$output $categories $level $id]

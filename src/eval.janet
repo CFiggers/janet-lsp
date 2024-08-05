@@ -53,7 +53,7 @@
           (thunk))))))
 
 (defn eval-buffer [str &opt filename]
-  (logging/info (string/format "`eval-buffer` received filename: `%s`" filename) [:evaluation] 1)
+  (logging/info (string/format "`eval-buffer` received filename: `%s`" (or filename "none")) [:evaluation] 1)
   (logging/info (string/format "`eval-buffer` received str: `%s`" str) [:evaluation] 2)
 
   (default filename "eval.janet")

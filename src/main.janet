@@ -113,44 +113,56 @@
         [:ok state message :notify true])
       [:noresponse state])))
 
-(defn binding-type [x]
-  (let [s (get ((dyn :eval-env) x) :value x)]
-    (case (type s)
-      :symbol    12 :boolean   6
-      :function  3  :cfunction 3
-      :string    6  :buffer    6
-      :number    6  :keyword   6
-      :core/file 17 :core/peg  6
-      :struct    6  :table     6
-      :tuple     6  :array     6
-      :fiber     6  :nil       6)))
-
-(defn binding-to-lsp-item
+(defmacro binding-to-lsp-item
   "Takes a binding and returns a CompletionItem"
-  [name]
-  {:label name :kind (binding-type name)})
+  [name eval-env]
+  (with-syms [$name $eval-env]
+    ~(let [,$name ,name
+           ,$eval-env ,eval-env
+           s (get-in ,$eval-env [,$name :value] ,$name)]
+       (,logging/log (string/format "binding-to-lsp-item: s is %m" s) [:completion] 2)
+       {:label ,$name :kind
+        (case (type s)
+          :symbol    12 :boolean   6
+          :function  3  :cfunction 3
+          :string    6  :buffer    6
+          :number    6  :keyword   6
+          :core/file 17 :core/peg  6
+          :struct    6  :table     6
+          :tuple     6  :array     6
+          :fiber     6  :nil       6)})))
 
 (defn on-completion [state params]
   (let [uri (get-in params ["textDocument" "uri"])
         eval-env (get-in state [:documents uri :eval-env])
-        bindings (seq [bind :in (all-bindings eval-env)] (binding-to-lsp-item bind))
+        bindings (seq [bind :in (all-bindings eval-env)] 
+                   (binding-to-lsp-item bind eval-env))
         message {:isIncomplete true
                  :items bindings}]
     (logging/message message [:completion] 1)
     [:ok state message]))
 
 (defn on-completion-item-resolve [state params]
-  (let [uri (get-in params ["textDocument" "uri"])
-        eval-env (get-in state [:documents uri :eval-env])
-        lbl (get params "label")
-        message {:label lbl
-                 :documentation {:kind "markdown"
-                                 :value (doc/my-doc* (symbol lbl) eval-env)}}]
+  (var eval-env nil)
+  (def lbl (get params "label"))
+  (def envs (seq [docu :in (state :documents)]
+              (docu :eval-env)))
+  
+  (each env envs
+    (when (env (symbol lbl))
+      (set eval-env env)
+      (break)))
+  
+  (let [message {:label lbl
+                 :documentation
+                 {:kind "markdown"
+                  :value (doc/my-doc*
+                          (symbol lbl)
+                          (or eval-env (make-env root-env)))}}]
     (logging/message message [:completion] 1)
     [:ok state message]))
 
 (defn on-document-hover [state params]
-  (logging/info (string/format "Current `:eval-env` is: %m" (dyn :eval-env)) [:evaluation] 1)
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
         eval-env (get-in state [:documents uri :eval-env])

@@ -25,16 +25,16 @@
 
 (defn run-diagnostics [uri content]
   (let [items @[]
-        eval-result (eval/eval-buffer
-                     content
-                     (path/relpath
-                      (os/cwd)
-                      (if (string/has-prefix? "file:" uri)
-                        (string/slice uri 5) uri)))]
+        [diagnostics env]
+        (eval/eval-buffer content
+                          (path/relpath
+                           (os/cwd)
+                           (if (string/has-prefix? "file:" uri)
+                             (string/slice uri 5) uri)))]
     
-    (logging/info (string/format "`eval-buffer` returned: %m" eval-result) [:evaluation])
+    (logging/info (string/format "`eval-buffer` returned: %m" diagnostics) [:evaluation])
 
-    (each res eval-result
+    (each res diagnostics
       (match res
         {:location [line col] :message message}
         (array/push items
@@ -44,7 +44,8 @@
                      :message message})))
 
     (logging/info (string/format "`run-diagnostics` is returning these errors: %m" items) [:evaluation])
-    items))
+    (logging/info (string/format "`run-diagnostics` is returning this eval-context: %m" env) [:evaluation] 1)
+    [items env]))
 
 (defn on-document-change
   ``
@@ -55,23 +56,25 @@
   [state params]
   (let [content (get-in params ["contentChanges" 0 "text"])
         uri (get-in params ["textDocument" "uri"])]
-    (put-in state [:documents uri] @{:content content})
+    (put-in state [:documents uri :content] content)
 
     (if (dyn :push-diagnostics)
-      (let [d (run-diagnostics uri content)
+      (let [[diagnostics env] (run-diagnostics uri content)
             message {:method "textDocument/publishDiagnostics"
                      :params {:uri uri
-                              :diagnostics d}}]
-        (logging/message message [:diagnostics])
+                              :diagnostics diagnostics}}]
+        (put-in state [:documnts uri :eval-env] env)
+        (logging/message message [:diagnostics :priority])
         [:ok state message :notify true])
       [:noresponse state])))
 
 (defn on-document-diagnostic [state params]
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
-        diagnostics (run-diagnostics uri content)
+        [diagnostics env] (run-diagnostics uri content)
         message {:kind "full"
                  :items diagnostics}]
+    (put-in state [:documents uri :eval-env] env)
     (logging/message message [:diagnostics])
     [:ok state message]))
 
@@ -96,13 +99,19 @@
 
 (defn on-document-open [state params]
   (let [content (get-in params ["textDocument" "text"])
-        uri (get-in params ["textDocument" "uri"])]
-
-    (put-in state [:documents uri] @{:content content})
-    (setdyn :eval-env (make-env root-env))
-    (run-diagnostics uri content))
-  (logging/info "Document opened" [:open] 1)
-  [:noresponse state])
+        uri (get-in params ["textDocument" "uri"])
+        [diagnostics env] (run-diagnostics uri content)]
+    (put-in state [:documents uri] @{:content content
+                                     :eval-env env})
+    (logging/info "Document opened" [:open :priority] 1)
+    (if (dyn :push-diagnostics)
+      (let [message {:method "textDocument/publishDiagnostics"
+                     :params {:uri uri
+                              :diagnostics diagnostics}}]
+        (put-in state [:documnts uri :eval-env] env)
+        (logging/message message [:diagnostics :priority])
+        [:ok state message :notify true])
+      [:noresponse state])))
 
 (defn binding-type [x]
   (let [s (get ((dyn :eval-env) x) :value x)]
@@ -122,26 +131,33 @@
   {:label name :kind (binding-type name)})
 
 (defn on-completion [state params]
-  (let [message {:isIncomplete true
-                 :items (seq [bind :in (all-bindings (dyn :eval-env))] (binding-to-lsp-item bind))}]
+  (let [uri (get-in params ["textDocument" "uri"])
+        eval-env (get-in state [:documents uri :eval-env])
+        bindings (seq [bind :in (all-bindings eval-env)] (binding-to-lsp-item bind))
+        message {:isIncomplete true
+                 :items bindings}]
     (logging/message message [:completion] 1)
     [:ok state message]))
 
 (defn on-completion-item-resolve [state params]
-  (let [label (get params "label")
-        message {:label label
+  (let [uri (get-in params ["textDocument" "uri"])
+        eval-env (get-in state [:documents uri :eval-env])
+        lbl (get params "label")
+        message {:label lbl
                  :documentation {:kind "markdown"
-                                 :value (doc/my-doc* (symbol label) (dyn :eval-env))}}]
+                                 :value (doc/my-doc* (symbol lbl) eval-env)}}]
     (logging/message message [:completion] 1)
     [:ok state message]))
 
 (defn on-document-hover [state params]
-  (logging/info (string/format "Current `:eval-env` is: %m" (dyn :eval-env)) [:evaluation :priority])
+  (logging/info (string/format "Current `:eval-env` is: %m" (dyn :eval-env)) [:evaluation] 1)
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
+        eval-env (get-in state [:documents uri :eval-env])
         {"line" line "character" character} (get params "position")
         {:word hover-word :range [start end]} (lookup/word-at {:line line :character character} content)
-        hover-text (doc/my-doc* (symbol hover-word) (dyn :eval-env))
+        hover-text (doc/my-doc* (symbol hover-word) eval-env)
+        _ (logging/log (string/format "on-document-hover: hover-text is %m" hover-text) [:hover] 1)
         message (match hover-word
                   nil {}
                   _ {:contents {:kind "markdown"
@@ -158,10 +174,11 @@
   (logging/info (string/format "%q" params) [:signature])
   (let [uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents uri :content])
+        eval-env (get-in state [:documents uri :eval-env])
         {"line" line "character" character} (get params "position")
         {:source sexp-text :range [start end]} (lookup/sexp-at {:line line :character character} content)
         function-symbol (or (first (peg/match '(* "(" (any :s) (<- (to " "))) sexp-text)) "none")
-        signature (or (doc/get-signature (symbol function-symbol)) "not found")]
+        signature (or (doc/get-signature (symbol function-symbol) eval-env) "not found")]
     (case signature
       "not found" 
       (do (logging/info "No signature found" [:signature]) [:ok state :json/null])

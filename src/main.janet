@@ -384,13 +384,7 @@
       ([_] (logging/err "Tried to write to janetlsp.log txt, but couldn't" [:core]))))
 
   (merge-module root-env jpm-defs nil true)
-  # (setdyn :eval-env (make-env root-env))
-
-  # (each path (find-unique-paths (find-all-module-files (os/cwd) (not ((dyn :opts) :dont-search-jpm-tree))))
-  #   (cond
-  #     (string/has-suffix? ".janet" path) (array/push ((root-env 'module/paths) :value) [path :source])
-  #     (string/has-suffix? ".so" path) (array/push ((root-env 'module/paths) :value) [path :native])
-  #     (string/has-suffix? ".jimage" path) (array/push ((root-env 'module/paths) :value) [path :jimage])))
+  (setdyn :unique-paths (find-unique-paths (find-all-module-files (os/cwd) (not ((dyn :opts) :dont-search-jpm-tree)))))
 
   (when (os/stat "./.janet-lsp/startup.janet")
     (merge-into root-env (dofile "./.janet-lsp/startup.janet")))

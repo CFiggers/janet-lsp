@@ -67,6 +67,13 @@
 
   (def fresh-env (make-env root-env))
 
+  (each path (dyn :unique-paths)
+    (cond
+      (string/has-suffix? ".janet" path) (array/push ((fresh-env 'module/paths) :value) [path :source])
+      (string/has-suffix? ".so" path) (array/push ((fresh-env 'module/paths) :value) [path :native])
+      (string/has-suffix? ".jimage" path) (array/push ((fresh-env 'module/paths) :value) [path :jimage])))
+
+
   (def eval-fiber
     (fiber/new
      |(do (var returnval @[])

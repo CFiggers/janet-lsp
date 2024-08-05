@@ -4,6 +4,8 @@
 
 (defn log [output categories &opt level]
   
+  (unless (dyn :debug) (break))
+  
   (unless (dyn :client)
     (def opts (dyn :opts)) 
 

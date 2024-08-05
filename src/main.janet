@@ -246,6 +246,7 @@
   [state params]
   (let [request-uri (get-in params ["textDocument" "uri"])
         content (get-in state [:documents request-uri :content])
+        eval-env (get-in state [:documents request-uri :eval-env])
         {"line" line "character" character} (get params "position")
         {:word define-word :range [start end]} (lookup/word-at {:line line :character character} content)]
     (logging/info (string/format ``
@@ -261,9 +262,9 @@
                                 ``
                                          request-uri (length content) line character define-word start end) :define 2)
     (logging/info (string/format "symbol is: %s" (symbol define-word)) [:define] 2)
-    (logging/info (string/format "dyn returns: %m" ((dyn :eval-env) (symbol define-word))) [:define] 2)
-    (logging/info (string/format "`:source-map` is: %m" (((dyn :eval-env) (symbol define-word)) :source-map)) [:define] 2)
-    (if-let [[uri line col] (((dyn :eval-env) (symbol define-word)) :source-map)
+    (logging/info (string/format "eval-env is: %m" (eval-env (symbol define-word))) [:define] 2)
+    (logging/info (string/format "`:source-map` is: %m" ((eval-env (symbol define-word)) :source-map)) [:define] 2)
+    (if-let [[uri line col] ((eval-env (symbol define-word)) :source-map)
              found (os/stat (path/abspath (uri)))
              filepath (string "file://" (path/abspath uri))
              message {:uri filepath

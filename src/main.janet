@@ -350,7 +350,7 @@
       [:noresponse new-state] (message-loop :state new-state)
 
       [:error new-state err] (printf "unhandled error response: %m" err)
-      [:exit] (do (file/flush stdout) (ev/sleep 2) nil))))
+      [:exit] (do (file/flush stdout) (ev/sleep 0.1) (os/exit 0)))))
 
 (defn find-all-module-files [path &opt search-jpm-tree explicit results]
   (default explicit true)

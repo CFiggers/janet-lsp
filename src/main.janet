@@ -90,7 +90,7 @@
         (logging/info "No changes" [:formatting])
         [:ok state :json/null])
       (do 
-        (put-in state [:documents uri] {:content new-content})
+        (put-in state [:documents uri] @{:content new-content})
         (let [message [{:range {:start {:line 0 :character 0}
                                 :end {:line 1000000 :character 1000000}}
                         :newText new-content}]]

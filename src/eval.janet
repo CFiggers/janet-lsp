@@ -67,7 +67,7 @@
 
   (def fresh-env (make-env root-env))
 
-  (each path (dyn :unique-paths)
+  (each path (or (dyn :unique-paths) @[])
     (cond
       (string/has-suffix? ".janet" path) (array/push ((fresh-env 'module/paths) :value) [path :source])
       (string/has-suffix? ".so" path) (array/push ((fresh-env 'module/paths) :value) [path :native])

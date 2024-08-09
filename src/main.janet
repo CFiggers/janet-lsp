@@ -14,6 +14,12 @@
 (use judge)
 
 (def version "0.0.6")
+(def commit
+  (with [proc (os/spawn ["git" "rev-parse" "--short" "HEAD"] :xp {:out :pipe})]
+        (let [[out] (ev/gather
+                     (ev/read (proc :out) :all)
+                     (os/proc-wait proc))]
+             (if out (string/trimr out) ""))))
 
 (def jpm-defs (require "../libs/jpm-defs"))
 
@@ -220,7 +226,8 @@
                                 :documentFormattingProvider true
                                 :definitionProvider true}
                  :serverInfo {:name "janet-lsp"
-                              :version version}}]
+                              :version version
+                              :commit commit}}]
     (logging/message message [:initialize] 1)
     [:ok state message]))
 
@@ -249,7 +256,11 @@
   Called by the LSP client to request information about the server.
   ``
   [state params]
-  [:ok state :json/null])
+  (let [message {:server-info {:name "janet-lsp"
+                               :version version
+                               :commit commit}}] 
+    (logging/message message [:info] 1)
+    [:ok state message]))
 
 (defn on-document-definition
   ``
@@ -291,6 +302,10 @@
 
 (defn on-set-trace [state params]
   (logging/info (string/format "on-set-trace: %m" params) [:settrace] 2)
+  (case (params "value")
+    "off" nil
+    "messages" nil
+    "verbose" nil)
   [:noresponse state])
 
 (defn handle-message [message state]
@@ -335,6 +350,7 @@
   (let [content-length-line (file/read stdin :line)
         _ (file/read stdin :line)
         input (file/read stdin (parse-content-length content-length-line))]
+    (logging/info (string/format "received json rpc: %s" input) [:rpc :priority] 2)
     (json/decode input)))
 
 (defn message-loop [&named state]
@@ -383,7 +399,7 @@
        (map |(string "./" $))))
 
 (defn start-language-server []
-  (print "Starting LSP")
+  (print "Starting LSP " version "-" commit)
   (when (dyn :debug)
     (try (spit "janetlsp.log.txt" "")
       ([_] (logging/err "Tried to write to janetlsp.log txt, but couldn't" [:core]))))
@@ -418,7 +434,7 @@
 
   (when (or (has-value? parsed-args "--version")
             (has-value? parsed-args "-v"))
-    (print "Janet LSP v" version)
+    (print "Janet LSP v" version "-" commit)
     (os/exit 0)) 
   
   (cmd/run
@@ -442,9 +458,9 @@
          :debug-port debug-port})
 
       (setdyn :opts opts)
-      (when debug (setdyn :debug true)) #(setdyn :debug true)
-      (setdyn :log-level log-level) #(setdyn :log-level 1)
-      (setdyn :log-categories @[:core ;(map keyword log-category)]) #(setdyn :log-categories [:core :priority])
+      (when debug (setdyn :debug true)) (setdyn :debug true)
+      (setdyn :log-level log-level) #(setdyn :log-level 2)
+      (setdyn :log-categories @[:core ;(map keyword log-category)]) (setdyn :log-categories [:core :priority :settrace])
       (setdyn :out stderr)
 
       (if console

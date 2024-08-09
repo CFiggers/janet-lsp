@@ -14,7 +14,7 @@
     (+= (cursor :request-id) 1)))
 
 (defn start-lsp []
-  (def janet-lsp (os/spawn ["janet" "./src/main.janet" "--debug"] :p {:in :pipe :out :pipe}))
+  (def janet-lsp (os/spawn ["janet" "./src/main.janet"] :p {:in :pipe :out :pipe}))
 
   (def cursor
     @{:process janet-lsp
@@ -54,25 +54,36 @@
 
 (deftest: with-process "Starts and exits" [context]
   (var got (ev/read (context :from-lsp) 2048))
-  (test (jayson/decode (last (string/split "\r\n" got)))
-        @{"id" 0
-          "jsonrpc" "2.0"
-          "result" @{"capabilities" @{"completionProvider" @{"resolveProvider" true}
-                                      "definitionProvider" true
-                                      "diagnosticProvider" @{"interFileDependencies" true
-                                                             "workspaceDiagnostics" false}
-                                      "documentFormattingProvider" true
-                                      "hoverProvider" true
-                                      "signatureHelpProvider" @{"triggerCharacters" @[" "]}
-                                      "textDocumentSync" @{"change" 1 "openClose" true}}
-                     "serverInfo" @{"name" "janet-lsp" "version" "0.0.6"}}}))
+  (test (jayson/decode (last (string/split "\r\n" got)) true)
+    @{:id 0
+      :jsonrpc "2.0"
+      :result @{:capabilities @{:completionProvider @{:resolveProvider true}
+                                :definitionProvider true
+                                :diagnosticProvider @{:interFileDependencies true
+                                                      :workspaceDiagnostics false}
+                                :documentFormattingProvider true
+                                :hoverProvider true
+                                :signatureHelpProvider @{:triggerCharacters @[" "]}
+                                :textDocumentSync @{:change 1 :openClose true}}
+                :serverInfo @{:commit "3a20fa7"
+                              :name "janet-lsp"
+                              :version "0.0.6"}}})
+  (write-output context (jayson/encode {:jsonrpc 2.0 
+                                        :method "janet/serverInfo" 
+                                        :params {}}))
+  (set got (ev/read (context :from-lsp) 2048))
+  (test (jayson/decode (last (string/split "\r\n" got)) true)
+    @{:jsonrpc "2.0"
+      :result @{:server-info @{:commit "3a20fa7"
+                               :name "janet-lsp"
+                               :version "0.0.6"}}}) )
 
 (deftest: with-process "test textDocument/didOpen" [context]
   (var got (ev/read (context :from-lsp) 2048)) 
   (write-output context (slurp "./test/resources/textDocument_didOpen_rpc.json"))
-  (var got (ev/read (context :from-lsp) 2048))
-  (test (jayson/decode (last (string/split "\r\n" got)))
-    @{"jsonrpc" "2.0"
-      "method" "textDocument/publishDiagnostics"
-      "params" @{"diagnostics" @[]
-                 "uri" "file:///home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-format-file-after.janet"}}))
+  (set got (ev/read (context :from-lsp) 2048))
+  (test (jayson/decode (last (string/split "\r\n" got)) true)
+    @{:jsonrpc "2.0"
+      :method "textDocument/publishDiagnostics"
+      :params @{:diagnostics @[]
+                :uri "file:///home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-format-file-after.janet"}}))

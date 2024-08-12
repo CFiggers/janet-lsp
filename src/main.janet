@@ -285,20 +285,22 @@
                                 ``
                                          request-uri (length content) line character define-word start end) [:definition] 2)
     (logging/info (string/format "symbol is: %s" (symbol define-word)) [:definition] 2)
-    (logging/info (string/format "eval-env is: %m" (eval-env (symbol define-word))) [:definition] 2)
-    (logging/info (string/format "`:source-map` is: %m" ((eval-env (symbol define-word)) :source-map)) [:definition] 2)
-    (if-let [[uri line col] ((eval-env (symbol define-word)) :source-map)
+    (logging/info (string/format "eval-env is: %m" eval-env) [:definition] 3)
+    (logging/info (string/format "symbol lookup is: %m" (get eval-env (symbol define-word) nil)) [:definition] 2)
+    (logging/info (string/format "`:source-map` is: %m" (get (get eval-env (symbol define-word) nil) :source-map nil)) [:definition] 2)
+    (if-let [symbol-lookup (get eval-env (symbol define-word) nil)
+             [uri line col] (get symbol-lookup :source-map nil)
              found (os/stat (path/abspath uri))
              filepath (string "file:" (path/abspath uri))
              message {:uri filepath
                       :range {:start {:line (max 0 (dec line)) :character col}
                               :end {:line (max 0 (dec line)) :character col}}}]
-      (do
-        (logging/message message [:definition])
-        [:ok state message])
-      (do 
-        (logging/info "Couldn't find definition" [:definition])
-        [:ok state :json/null]))))
+        (do
+          (logging/message message [:definition])
+          [:ok state message])
+        (do
+          (logging/info "Couldn't find definition" [:definition])
+          [:ok state :json/null]))))
 
 (defn on-set-trace [state params]
   (logging/info (string/format "on-set-trace: %m" params) [:settrace] 2)

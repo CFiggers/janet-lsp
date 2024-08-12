@@ -2,67 +2,88 @@
 
 (use judge)
 
-(def line-ending "\r\n\r\n")
+(defn write-output [cursor & responses]
+  (each response responses
+    # Write headers
+    (:write (cursor :to-lsp) (string "Content-Length: " (length response)
+                                     (case (os/which)
+                                       :windows "\n\n" "\r\n\r\n")))
 
-(defn write-output [handle response]
-  # Write headers
-  (:write handle (string "Content-Length: " (length response) line-ending))
-
-  # Write response
-  (:write handle (string response (if (string/has-suffix? "\n" response) "" "\n")))
-
-  # Flush response
-#   (file/flush handle)
-  )
+    # Write response
+    (:write (cursor :to-lsp) response)
+    (+= (cursor :request-id) 1)))
 
 (defn start-lsp []
-  (var request-id 0)
-  (def janet-lsp (os/spawn ["janet" "./src/main.janet" "--debug"] :p {:in :pipe :out :pipe}))
+  (def janet-lsp (os/spawn ["janet" "./src/main.janet"] :p {:in :pipe :out :pipe}))
 
-  (def to-lsp (janet-lsp :in))
-  (def from-lsp (janet-lsp :out))
+  (def cursor
+    @{:process janet-lsp
+      :request-id 0
+      :to-lsp (janet-lsp :in)
+      :from-lsp (janet-lsp :out)})
 
-  (write-output to-lsp
+  (write-output cursor
                 (string (jayson/encode
-                         {:id request-id
-                          :method :initialize
-                          :params {:rootUri (os/cwd)
-                                   :capabilities []}})))
-  (+= request-id 1)
+                          {:id (cursor :request-id)
+                           :method :initialize
+                           :params {:rootUri (os/cwd)
+                                    :capabilities {}}})))
 
-  (print (:read (janet-lsp :out) 1024))
-  {:process janet-lsp
-   :request-id request-id})
+  cursor)
 
-(defn exit-lsp [context]
-  (def lsp-handle (context :process))
-  (var request-id (context :request-id))
-  (write-output (lsp-handle :in)
+(defn exit-lsp [cursor]
+  (write-output cursor
                 (string (jayson/encode
-                         {:id request-id
-                          :method :shutdown})))
-  (+= request-id 1)
-
-  (print (:read (lsp-handle :out) 1024))
-
-  (write-output (lsp-handle :in)
+                          {:id (cursor :request-id)
+                           :method :shutdown}))
                 (string (jayson/encode
-                         {:id request-id
-                          :method :exit})))
-  (print (:read (lsp-handle :out) 1024)))
-
+                          {:id (cursor :request-id)
+                           :method :exit}))))
 
 (deftest-type with-process
-  :setup    (fn []
-              # (start-lsp)
-              )
-  :reset    (fn [context]
-              (printf "context is: %q" context)
-              # (exit-lsp context)
-              #   (start-lsp)
-              )
-  :teardown (fn [context] ))
+  :setup (fn []
+           (start-lsp))
+  :reset (fn [context]
+           (printf "context is (from reset): %q" context)
+           (exit-lsp context)
+           (os/proc-wait (context :process))
+           (merge-into context (start-lsp)))
+  :teardown (fn [context]
+              (exit-lsp context)
+              (os/proc-wait (context :process))))
 
 (deftest: with-process "Starts and exits" [context]
-  (printf "context is: %q" context)
-  (test (= true true) true))
+  (var got (ev/read (context :from-lsp) 2048))
+  (test (jayson/decode (last (string/split "\r\n" got)) true)
+    @{:id 0
+      :jsonrpc "2.0"
+      :result @{:capabilities @{:completionProvider @{:resolveProvider true}
+                                :definitionProvider true
+                                :diagnosticProvider @{:interFileDependencies true
+                                                      :workspaceDiagnostics false}
+                                :documentFormattingProvider true
+                                :hoverProvider true
+                                :signatureHelpProvider @{:triggerCharacters @[" "]}
+                                :textDocumentSync @{:change 1 :openClose true}}
+                :serverInfo @{:commit "3a20fa7"
+                              :name "janet-lsp"
+                              :version "0.0.6"}}})
+  (write-output context (jayson/encode {:jsonrpc 2.0 
+                                        :method "janet/serverInfo" 
+                                        :params {}}))
+  (set got (ev/read (context :from-lsp) 2048))
+  (test (jayson/decode (last (string/split "\r\n" got)) true)
+    @{:jsonrpc "2.0"
+      :result @{:server-info @{:commit "3a20fa7"
+                               :name "janet-lsp"
+                               :version "0.0.6"}}}) )
+
+(deftest: with-process "test textDocument/didOpen" [context]
+  (var got (ev/read (context :from-lsp) 2048)) 
+  (write-output context (slurp "./test/resources/textDocument_didOpen_rpc.json"))
+  (set got (ev/read (context :from-lsp) 2048))
+  (test (jayson/decode (last (string/split "\r\n" got)) true)
+    @{:jsonrpc "2.0"
+      :method "textDocument/publishDiagnostics"
+      :params @{:diagnostics @[]
+                :uri "file:///home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-format-file-after.janet"}}))

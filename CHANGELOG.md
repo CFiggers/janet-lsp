@@ -2,6 +2,26 @@
 All notable changes to this project will be documented in this file.
 Format for entires is <version-string> - release date.
 
+## 0.0.7 - 2024-08-11
+
+- Core loop
+  - More explicit `(os/exit 0)` instead of implicit process exit
+- Logging
+  - Overhaul logging module and include significantly more logging statements throughout
+- Completion
+  - Simplify `binding-type` lookup
+- Bug Fixes
+  - Attempting to index on null ds in `on-document-definition`
+  - Catch error when attempting to write to `janetlsp.log.txt` fails
+  - Diagnostics/Completion: Maintain separate eval-envs for each document uri instead of overwriting shared eval results
+- Testing
+  - Fix tests throughout
+  - Progress on Integration testing
+- Misc
+  - Formatting tweaks
+  - Capture current commit in version outputs
+  - Catch and handle errors from `handle-message` instead of crashing
+
 ## 0.0.6 - 2024-07-31
 
 - Core Functionality

@@ -345,6 +345,13 @@
     "verbose" nil)
   [:noresponse state])
 
+(defn on-janet-tell-joke [state params]
+  # (eprint "What's brown and sticky? A stick!")
+  (let [message {:question "What's brown and sticky?"
+                 :answer "A stick!"}] 
+    (logging/message message [:joke])
+    [:ok state message]))
+
 (defn handle-message [message state]
   (let [id (get message "id")
         method (get message "method")
@@ -365,6 +372,7 @@
       # "textDocument/documentSymbol" (on-document-symbols state params) TODO: Implement this? See src/lsp/api.ts:121
       "textDocument/definition" (on-document-definition state params)
       "janet/serverInfo" (on-janet-serverinfo state params)
+      "janet/tellJoke" (on-janet-tell-joke state params)
       "shutdown" (on-shutdown state params)
       "exit" (on-exit state params)
       "$/setTrace" (on-set-trace state params)

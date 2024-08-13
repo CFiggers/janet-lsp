@@ -395,14 +395,17 @@
   (logging/info (string/format "current state is: %m" state) [:priority] 3)
   (let [message (read-message)]
     (logging/info (string/format "got: %q" message) [:core] 3)
-    (match (handle-message message state)
+    (match (try (handle-message message state) ([err fib] [:error state err fib]))
       [:ok new-state & response] (do
                                    (write-response stdout (rpc/success-response (get message "id") ;response))
                                    (logging/info "successful rpc" [:core] (get message "id"))
                                    (message-loop :state new-state))
       [:noresponse new-state] (message-loop :state new-state)
 
-      [:error new-state err] (printf "unhandled error response: %m" err)
+      [:error new-state err fib] (do
+                                   (logging/err (string/format "%m" err) [:core])
+                                   (debug/stacktrace fib err "")
+                                   (message-loop :state new-state))
       [:exit] (do (file/flush stdout) (ev/sleep 0.1) (os/exit 0)))))
 
 (defn find-all-module-files [path &opt search-jpm-tree explicit results]

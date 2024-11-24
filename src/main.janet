@@ -460,8 +460,8 @@
          :debug-port debug-port})
 
       (setdyn :opts opts)
-      (when debug (setdyn :debug true)) #(setdyn :debug true)
-      (setdyn :log-level log-level) #(setdyn :log-level 2)
+      (when debug (setdyn :debug true)) (setdyn :debug true)
+      (setdyn :log-level log-level) (setdyn :log-level 3)
       (setdyn :log-categories @[:core ;(map keyword log-category)]) #(setdyn :log-categories [:core :priority :diagnostics])
       (setdyn :out stderr)
       (put root-env :out stderr)

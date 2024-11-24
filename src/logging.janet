@@ -19,8 +19,8 @@
 
   (when (dyn :debug)
     # Always log to file
-    (try (spit "janetlsp.log.txt" (string output "\n") :a)
-         ([_]))
+    # (try (spit "janetlsp.log.txt" (string output "\n") :a)
+    #     ([_]))
     (when (and
            # Category Match
            (or (empty? (dyn :log-categories)) # No log categories are specified
@@ -45,7 +45,8 @@
                (eprintf "is level high enough? %m" (<= level (dyn :log-level)))
                (eprintf "second condition %m" (or (nil? level)
                                                   (<= level (dyn :log-level)))))
-
+      (try (spit "janetlsp.log.txt" (string output "\n") :a)
+        ([_]))
       (file/write stderr (string output "\n"))))
   nil)
 

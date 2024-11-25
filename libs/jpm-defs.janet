@@ -75,3 +75,60 @@
   be the first declaration in a project.janet file.
   Also sets up basic task targets like clean, build, test, etc."
   [&keys meta])
+
+(defn add-input
+  "Add a dependency to an existing rule. Useful for extending phony
+  rules or extending the dependency graph of existing rules."
+  [target input])
+
+(defn add-dep
+  "Alias for `add-input`"
+  [target dep])
+
+(defn add-output
+  "Add an output file to an existing rule. Rules can contain multiple
+  outputs, but are still referred to by a main target name."
+  [target output])
+
+(defn add-thunk
+  "Append a thunk to a target's recipe."
+  [target thunk])
+
+(defmacro rule
+  "Add a rule to the rule graph."
+  [target deps & body])
+
+(defmacro task
+  "Add a task rule to the rule graph. A task rule will always run if invoked
+  (it is always considered out of date)."
+  [target deps & body])
+
+(defmacro phony
+  "Alias for `task`."
+  [target deps & body])
+
+(defmacro sh-rule
+  "Add a rule that invokes a shell command, and fails if the command returns non-zero."
+  [target deps & body])
+
+(defmacro sh-task
+  "Add a task that invokes a shell command, and fails if the command returns non-zero."
+  [target deps & body])
+
+(defmacro sh-phony
+  "Alias for `sh-task`"
+  [target deps & body])
+
+(defmacro phony
+  "Alias for `task`"
+  [target deps & body])
+
+(defmacro add-body
+  "Add recipe code to an existing rule. This makes existing rules do more but
+  does not modify the dependency graph."
+  [target & body])
+
+(def default-cflags [])
+(def default-lflags [])
+(def default-ldflags [])
+(def default-cppflags [])

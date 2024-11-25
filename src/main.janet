@@ -13,7 +13,7 @@
 
 (use judge)
 
-(def version "0.0.7")
+(def version "0.0.9")
 (def commit janet/build)
 
 (def jpm-defs (require "../libs/jpm-defs"))

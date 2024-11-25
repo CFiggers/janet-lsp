@@ -14,12 +14,7 @@
 (use judge)
 
 (def version "0.0.7")
-(def commit
-  (with [proc (os/spawn ["git" "rev-parse" "--short" "HEAD"] :xp {:out :pipe})]
-        (let [[out] (ev/gather
-                     (ev/read (proc :out) :all)
-                     (os/proc-wait proc))]
-             (if out (string/trimr out) ""))))
+(def commit janet/build)
 
 (def jpm-defs (require "../libs/jpm-defs"))
 

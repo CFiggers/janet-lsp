@@ -16,10 +16,10 @@
 (def version "0.0.7")
 (def commit
   (with [proc (os/spawn ["git" "rev-parse" "--short" "HEAD"] :xp {:out :pipe})]
-        (let [[out] (ev/gather
-                     (ev/read (proc :out) :all)
-                     (os/proc-wait proc))]
-             (if out (string/trimr out) ""))))
+    (let [[out] (ev/gather
+                  (ev/read (proc :out) :all)
+                  (os/proc-wait proc))]
+      (if out (string/trimr out) ""))))
 
 (def jpm-defs (require "../libs/jpm-defs"))
 
@@ -34,10 +34,10 @@
         [diagnostics env]
         (eval/eval-buffer content
                           (path/relpath
-                           (os/cwd)
-                           (if (string/has-prefix? "file:" uri)
-                             (string/slice uri 5) uri)))]
-    
+                            (os/cwd)
+                            (if (string/has-prefix? "file:" uri)
+                              (string/slice uri 5) uri)))]
+
     (logging/info (string/format "`eval-buffer` returned: %m" diagnostics) [:evaluation])
 
     (each res diagnostics
@@ -89,7 +89,7 @@
   [state params]
   (let [content (get-in params ["contentChanges" 0 "text"])
         uri (first (peg/match uri-percent-encoding-peg
-                     (get-in params ["textDocument" "uri"])))]
+                              (get-in params ["textDocument" "uri"])))]
     (put-in state [:documents uri :content] content)
 
     (if (dyn :push-diagnostics)
@@ -104,7 +104,7 @@
 
 (defn on-document-diagnostic [state params]
   (let [uri (first (peg/match uri-percent-encoding-peg
-                     (get-in params ["textDocument" "uri"])))
+                              (get-in params ["textDocument" "uri"])))
         content (get-in state [:documents uri :content])
         [diagnostics env] (run-diagnostics uri content)
         message {:kind "full"
@@ -115,7 +115,7 @@
 
 (defn on-document-formatting [state params]
   (let [uri (first (peg/match uri-percent-encoding-peg
-                     (get-in params ["textDocument" "uri"])))
+                              (get-in params ["textDocument" "uri"])))
         content (get-in state [:documents uri :content])
         new-content (freeze (fmt/format (string/slice content)))]
     (logging/info (string/format "old content: %m" content) [:formatting] 2)
@@ -125,7 +125,7 @@
       (do
         (logging/info "No changes" [:formatting])
         [:ok state :json/null])
-      (do 
+      (do
         (put-in state [:documents uri] @{:content new-content})
         (let [message [{:range {:start {:line 0 :character 0}
                                 :end {:line 1000000 :character 1000000}}
@@ -136,7 +136,7 @@
 (defn on-document-open [state params]
   (let [content (get-in params ["textDocument" "text"])
         uri (first (peg/match uri-percent-encoding-peg
-                     (get-in params ["textDocument" "uri"])))
+                              (get-in params ["textDocument" "uri"])))
         [diagnostics env] (run-diagnostics uri content)]
     (put-in state [:documents uri] @{:content content
                                      :eval-env env})
@@ -171,9 +171,9 @@
 
 (defn on-completion [state params]
   (let [uri (first (peg/match uri-percent-encoding-peg
-                     (get-in params ["textDocument" "uri"])))
+                              (get-in params ["textDocument" "uri"])))
         eval-env (get-in state [:documents uri :eval-env])
-        bindings (seq [bind :in (all-bindings eval-env)] 
+        bindings (seq [bind :in (all-bindings eval-env)]
                    (binding-to-lsp-item bind eval-env))
         message {:isIncomplete true
                  :items bindings}]
@@ -185,24 +185,24 @@
   (def lbl (get params "label"))
   (def envs (seq [docu :in (state :documents)]
               (docu :eval-env)))
-  
+
   (each env envs
     (when (env (symbol lbl))
       (set eval-env env)
       (break)))
-  
+
   (let [message {:label lbl
                  :documentation
                  {:kind "markdown"
                   :value (doc/my-doc*
-                          (symbol lbl)
-                          (or eval-env (make-env root-env)))}}]
+                           (symbol lbl)
+                           (or eval-env (make-env root-env)))}}]
     (logging/message message [:completion] 1)
     [:ok state message]))
 
 (defn on-document-hover [state params]
   (let [uri (first (peg/match uri-percent-encoding-peg
-                     (get-in params ["textDocument" "uri"])))
+                              (get-in params ["textDocument" "uri"])))
         content (get-in state [:documents uri :content])
         eval-env (get-in state [:documents uri :eval-env])
         {"line" line "character" character} (get params "position")
@@ -224,7 +224,7 @@
   (logging/info (string "on-signature-help params: ") [:signature])
   (logging/info (string/format "%q" params) [:signature])
   (let [uri (first (peg/match uri-percent-encoding-peg
-                     (get-in params ["textDocument" "uri"])))
+                              (get-in params ["textDocument" "uri"])))
         content (get-in state [:documents uri :content])
         eval-env (get-in state [:documents uri :eval-env])
         {"line" line "character" character} (get params "position")
@@ -232,9 +232,9 @@
         function-symbol (or (first (peg/match '(* "(" (any :s) (<- (to " "))) sexp-text)) "none")
         signature (or (doc/get-signature (symbol function-symbol) eval-env) "not found")]
     (case signature
-      "not found" 
+      "not found"
       (do (logging/info "No signature found" [:signature]) [:ok state :json/null])
-      (let [message {:signatures [{:label signature}]}] 
+      (let [message {:signatures [{:label signature}]}]
         (logging/message message [:signature])
         [:ok state message]))))
 
@@ -292,7 +292,7 @@
   [state params]
   (let [message {:server-info {:name "janet-lsp"
                                :version version
-                               :commit commit}}] 
+                               :commit commit}}]
     (logging/message message [:info] 1)
     [:ok state message]))
 
@@ -302,7 +302,7 @@
   ``
   [state params]
   (let [request-uri (first (peg/match uri-percent-encoding-peg
-                             (get-in params ["textDocument" "uri"])))
+                                      (get-in params ["textDocument" "uri"])))
         content (get-in state [:documents request-uri :content])
         eval-env (get-in state [:documents request-uri :eval-env])
         {"line" line "character" character} (get params "position")
@@ -318,7 +318,7 @@
                                 end is: %d
                                 -------------------------
                                 ``
-                                         request-uri (length content) line character define-word start end) [:definition] 2)
+                                 request-uri (length content) line character define-word start end) [:definition] 2)
     (logging/info (string/format "symbol is: %s" (symbol define-word)) [:definition] 2)
     (logging/info (string/format "eval-env is: %m" eval-env) [:definition] 3)
     (logging/info (string/format "symbol lookup is: %m" (get eval-env (symbol define-word) nil)) [:definition] 2)
@@ -330,12 +330,12 @@
              message {:uri filepath
                       :range {:start {:line (max 0 (dec line)) :character col}
                               :end {:line (max 0 (dec line)) :character col}}}]
-        (do
-          (logging/message message [:definition])
-          [:ok state message])
-        (do
-          (logging/info "Couldn't find definition" [:definition])
-          [:ok state :json/null]))))
+      (do
+        (logging/message message [:definition])
+        [:ok state message])
+      (do
+        (logging/info "Couldn't find definition" [:definition])
+        [:ok state :json/null]))))
 
 (defn on-set-trace [state params]
   (logging/info (string/format "on-set-trace: %m" params) [:settrace] 2)
@@ -348,7 +348,7 @@
 (defn on-janet-tell-joke [state params]
   # (eprint "What's brown and sticky? A stick!")
   (let [message {:question "What's brown and sticky?"
-                 :answer "A stick!"}] 
+                 :answer "A stick!"}]
     (logging/message message [:joke])
     [:ok state message]))
 
@@ -376,7 +376,7 @@
       "shutdown" (on-shutdown state params)
       "exit" (on-exit state params)
       "$/setTrace" (on-set-trace state params)
-      (do 
+      (do
         (logging/info (string/format "Received unrecognized RPC: %m" method) [:handle] 1)
         [:noresponse state]))))
 
@@ -483,8 +483,8 @@
   (when (or (has-value? parsed-args "--version")
             (has-value? parsed-args "-v"))
     (print "Janet LSP v" version "-" commit)
-    (os/exit 0)) 
-  
+    (os/exit 0))
+
   (cmd/run
     (cmd/fn
       "A Language Server (LSP) for the Janet Programming Language."

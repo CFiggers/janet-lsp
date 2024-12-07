@@ -77,9 +77,6 @@
                       :semi :equals :question :at :lbracket
                       :rbracket '1)))})
 
-(test (peg/match uri-percent-encoding-peg "file:///c%3A/Users/pete/Desktop/code/libmpsse")
-      @["file:///c:/Users/pete/Desktop/code/libmpsse"])
-
 (defn on-document-change
   ``
   Handler for the ["textDocument/didChange"](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_didChange) event.

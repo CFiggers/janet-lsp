@@ -97,7 +97,7 @@
             message {:method "textDocument/publishDiagnostics"
                      :params {:uri uri
                               :diagnostics diagnostics}}]
-        (put-in state [:documnts uri :eval-env] env)
+        (put-in state [:documents uri :eval-env] env)
         (logging/message message [:diagnostics])
         [:ok state message :notify true])
       [:noresponse state])))
@@ -145,7 +145,7 @@
       (let [message {:method "textDocument/publishDiagnostics"
                      :params {:uri uri
                               :diagnostics diagnostics}}]
-        (put-in state [:documnts uri :eval-env] env)
+        (put-in state [:documents uri :eval-env] env)
         (logging/message message [:diagnostics])
         [:ok state message :notify true])
       [:noresponse state])))

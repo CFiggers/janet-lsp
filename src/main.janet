@@ -53,6 +53,33 @@
     (logging/info (string/format "`run-diagnostics` is returning this eval-context: %m" env) [:evaluation] 1)
     [items env]))
 
+(def uri-percent-encoding-peg
+  ~{:bang (/ (<- "%21") "!")
+    :hash (/ (<- "%23") "#")
+    :dollar (/ (<- "%24") "$")
+    :amp (/ (<- "%26") "&")
+    :tick (/ (<- "%27") "'")
+    :lparen (/ (<- "%28") "(")
+    :rparen (/ (<- "%29") ")")
+    :star (/ (<- (* "%2" (+ "A" "a"))) "*")
+    :plus (/ (<- (* "%2" (+ "B" "b"))) "+")
+    :comma (/ (<- (* "%2" (+ "C" "c"))) ",")
+    :slash (/ (<- (* "%2" (+ "F" "f"))) "/")
+    :colon (/ (<- (* "%3" (+ "A" "a"))) ":")
+    :semi (/ (<- (* "%3" (+ "B" "b"))) ";")
+    :equals (/ (<- (* "%3" (+ "D" "d"))) "=")
+    :question (/ (<- (* "%3" (+ "F" "f"))) "?")
+    :at (/ (<- "%40") "@")
+    :lbracket (/ (<- (* "%5" (+ "B" "b"))) "[")
+    :rbracket (/ (<- (* "%5" (+ "D" "d"))) "]")
+    :main (% (some (+ :bang :hash :dollar :amp :tick :lparen
+                      :rparen :star :plus :comma :slash :colon
+                      :semi :equals :question :at :lbracket
+                      :rbracket '1)))})
+
+(test (peg/match uri-percent-encoding-peg "file:///c%3A/Users/pete/Desktop/code/libmpsse")
+      @["file:///c:/Users/pete/Desktop/code/libmpsse"])
+
 (defn on-document-change
   ``
   Handler for the ["textDocument/didChange"](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_didChange) event.
@@ -61,7 +88,8 @@
   ``
   [state params]
   (let [content (get-in params ["contentChanges" 0 "text"])
-        uri (get-in params ["textDocument" "uri"])]
+        uri (first (peg/match uri-percent-encoding-peg
+                     (get-in params ["textDocument" "uri"])))]
     (put-in state [:documents uri :content] content)
 
     (if (dyn :push-diagnostics)
@@ -75,7 +103,8 @@
       [:noresponse state])))
 
 (defn on-document-diagnostic [state params]
-  (let [uri (get-in params ["textDocument" "uri"])
+  (let [uri (first (peg/match uri-percent-encoding-peg
+                     (get-in params ["textDocument" "uri"])))
         content (get-in state [:documents uri :content])
         [diagnostics env] (run-diagnostics uri content)
         message {:kind "full"
@@ -85,7 +114,8 @@
     [:ok state message]))
 
 (defn on-document-formatting [state params]
-  (let [uri (get-in params ["textDocument" "uri"])
+  (let [uri (first (peg/match uri-percent-encoding-peg
+                     (get-in params ["textDocument" "uri"])))
         content (get-in state [:documents uri :content])
         new-content (freeze (fmt/format (string/slice content)))]
     (logging/info (string/format "old content: %m" content) [:formatting] 2)
@@ -105,7 +135,8 @@
 
 (defn on-document-open [state params]
   (let [content (get-in params ["textDocument" "text"])
-        uri (get-in params ["textDocument" "uri"])
+        uri (first (peg/match uri-percent-encoding-peg
+                     (get-in params ["textDocument" "uri"])))
         [diagnostics env] (run-diagnostics uri content)]
     (put-in state [:documents uri] @{:content content
                                      :eval-env env})
@@ -139,7 +170,8 @@
           :fiber     6  :nil       6)})))
 
 (defn on-completion [state params]
-  (let [uri (get-in params ["textDocument" "uri"])
+  (let [uri (first (peg/match uri-percent-encoding-peg
+                     (get-in params ["textDocument" "uri"])))
         eval-env (get-in state [:documents uri :eval-env])
         bindings (seq [bind :in (all-bindings eval-env)] 
                    (binding-to-lsp-item bind eval-env))
@@ -169,7 +201,8 @@
     [:ok state message]))
 
 (defn on-document-hover [state params]
-  (let [uri (get-in params ["textDocument" "uri"])
+  (let [uri (first (peg/match uri-percent-encoding-peg
+                     (get-in params ["textDocument" "uri"])))
         content (get-in state [:documents uri :content])
         eval-env (get-in state [:documents uri :eval-env])
         {"line" line "character" character} (get params "position")
@@ -190,7 +223,8 @@
   (logging/info (string/format "%q" state) [:signature])
   (logging/info (string "on-signature-help params: ") [:signature])
   (logging/info (string/format "%q" params) [:signature])
-  (let [uri (get-in params ["textDocument" "uri"])
+  (let [uri (first (peg/match uri-percent-encoding-peg
+                     (get-in params ["textDocument" "uri"])))
         content (get-in state [:documents uri :content])
         eval-env (get-in state [:documents uri :eval-env])
         {"line" line "character" character} (get params "position")
@@ -267,7 +301,8 @@
   Called by the LSP client to request the location of a symbol's definition.
   ``
   [state params]
-  (let [request-uri (get-in params ["textDocument" "uri"])
+  (let [request-uri (first (peg/match uri-percent-encoding-peg
+                             (get-in params ["textDocument" "uri"])))
         content (get-in state [:documents request-uri :content])
         eval-env (get-in state [:documents request-uri :eval-env])
         {"line" line "character" character} (get params "position")

@@ -88,7 +88,7 @@ Starting in version 0.0.3, you can start a debug console by passing `--console` 
 ```console
 $ ./build/janet-lsp --console
   OR
-$ janet ./build/janet-lsp.jimage --console
+$ janet -i ./build/janet-lsp.jimage --console
   OR
 $ janet ./src/main.janet --console
 ```

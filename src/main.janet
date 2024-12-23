@@ -343,11 +343,39 @@
   [:noresponse state])
 
 (defn on-janet-tell-joke [state params]
-  # (eprint "What's brown and sticky? A stick!")
   (let [message {:question "What's brown and sticky?"
                  :answer "A stick!"}]
     (logging/message message [:joke])
     [:ok state message]))
+
+(defn on-enable-debug [state params]
+  (let [message {:message "Enabled :debug"}]
+    (setdyn :debug true)
+    (try (spit "janetlsp.log" "")
+         ([_] (logging/err "Tried to write to janetlsp.log, but couldn't" [:core])))
+    (logging/message message [:debug])
+    [:ok state message]))
+
+(defn on-disable-debug [state params]
+  (let [message {:message "Disabled :debug"}]
+    (setdyn :debug false)
+    (setdyn :log-level 2)
+    (logging/message message [:debug])
+    [:ok state message]))
+
+(defn do-set-log-level [state params kind]
+  (let [new-level-string (params "level")
+        new-level ({"off" 0 "messages" 1 "verbose" 2 "veryverbose" 3} new-level-string)
+        message {:message (string/format "Set %s to %s" kind new-level-string)}]
+    (logging/message message [:loglevel])
+    (setdyn kind new-level)
+    [:noresponse state]))
+
+(defmacro on-set-log-level [state params] 
+  ~(,do-set-log-level ,state ,params :log-level))
+
+(defmacro on-set-file-log-level [state params]
+  ~(,do-set-log-level ,state ,params :log-to-file-level))
 
 (defn handle-message [message state]
   (let [id (get message "id")
@@ -370,6 +398,10 @@
       "textDocument/definition" (on-document-definition state params)
       "janet/serverInfo" (on-janet-serverinfo state params)
       "janet/tellJoke" (on-janet-tell-joke state params)
+      "enableDebug" (on-enable-debug state params)
+      "disableDebug" (on-disable-debug state params)
+      "setLogLevel" (on-set-log-level state params)
+      "setLogToFileLevel" (on-set-file-log-level state params)
       "shutdown" (on-shutdown state params)
       "exit" (on-exit state params)
       "$/setTrace" (on-set-trace state params)
@@ -446,7 +478,7 @@
 (defn start-language-server []
   (print "Starting LSP " version "-" commit)
   (when (dyn :debug)
-    (try (spit "janetlsp.log.txt" "")
+    (try (spit "janetlsp.log" "")
       ([_] (logging/err "Tried to write to janetlsp.log txt, but couldn't" [:core]))))
 
   (merge-module root-env jpm-defs nil true)
@@ -488,7 +520,8 @@
       [[--dont-search-jpm-tree -j] (flag) "Whether to search `jpm_tree` for modules."
        --stdio (flag) "Use STDIO."
        [--debug -d] (flag) "Print debug messages."
-       [--log-level -l] (optional :int++ 0) "What level of logging to display. Defaults to 0."
+       [--log-level -l] (optional :int++ 1) "What level of logging to display. Defaults to 1."
+       [--log-to-file-level -f] (optional :int++ 2) "What level of logging to write to the log file. Defaults to 2."
        [--log-category -L] (tuple :string) "Enable logging by category. For multiple categories, repeat the flag."
        [--console -c] (flag) "Start a debug console instead of starting the Language Server."
        [--debug-port -p] (optional :int++) "What port to start or connect to the debug console on. Defaults to 8037."]
@@ -505,7 +538,8 @@
       (setdyn :opts opts)
       (when debug (setdyn :debug true)) #(setdyn :debug true)
       (setdyn :log-level log-level) #(setdyn :log-level 2)
-      (setdyn :log-categories @[:core ;(map keyword log-category)]) #(setdyn :log-categories [:core :priority :diagnostics])
+      (setdyn :log-to-file-level log-to-file-level) #(setdyn :log-level 3)
+      (setdyn :log-categories @[:core ;(map keyword log-category)]) #(setdyn :log-categories [:core :priority :loglevel])
       (setdyn :out stderr)
       (put root-env :out stderr)
 

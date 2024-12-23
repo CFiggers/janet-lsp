@@ -126,8 +126,8 @@
   "Get the documentation for a symbol in a given environment."
   [sym env]
   (assert env "my-doc*: env is nil")
-  (logging/info (string/format "env is: %m" env) [:hover] 1)
-  (logging/info (string/format "my-doc* tried: %m" (env sym)) [:hover] 1)
+  (logging/info (string/format "env is: %m" env) [:hover] 3)
+  (logging/info (string/format "my-doc* tried: %m" (env sym)) [:hover] 3)
   (if-let [x (env sym)]
     (make-module-entry x)
     (if (has-value? '[break def do fn if quasiquote quote

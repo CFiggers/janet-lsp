@@ -54,7 +54,7 @@
 
 (defn eval-buffer [str &opt filename]
   (logging/info (string/format "`eval-buffer` received filename: `%s`" (or filename "none")) [:evaluation] 1)
-  (logging/info (string/format "`eval-buffer` received str: `%s`" str) [:evaluation] 2)
+  (logging/info (string/format "`eval-buffer` received str: `%s`" str) [:evaluation] 3)
 
   (default filename "eval.janet")
   (var state (string str))
@@ -92,7 +92,7 @@
                                        :location [0 0]})))
           returnval) :e fresh-env))
   (def eval-fiber-return (resume eval-fiber))
-  (logging/info (string/format "`eval-buffer` is returning: %m" eval-fiber-return) [:evaluation] 2)
+  (logging/info (string/format "`eval-buffer` is returning: %m" eval-fiber-return) [:evaluation] 3)
   [eval-fiber-return fresh-env])
 
 # tests

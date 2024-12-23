@@ -38,7 +38,7 @@
                             (if (string/has-prefix? "file:" uri)
                               (string/slice uri 5) uri)))]
 
-    (logging/info (string/format "`eval-buffer` returned: %m" diagnostics) [:evaluation])
+    (logging/info (string/format "`eval-buffer` returned: %m" diagnostics) [:evaluation] 3)
 
     (each res diagnostics
       (match res
@@ -49,8 +49,8 @@
                       :end {:line (max 0 (dec line)) :character col}}
                      :message message})))
 
-    (logging/info (string/format "`run-diagnostics` is returning these errors: %m" items) [:evaluation])
-    (logging/info (string/format "`run-diagnostics` is returning this eval-context: %m" env) [:evaluation] 1)
+    (logging/info (string/format "`run-diagnostics` is returning these errors: %m" items) [:evaluation] 2)
+    (logging/info (string/format "`run-diagnostics` is returning this eval-context: %m" env) [:evaluation] 3)
     [items env]))
 
 (def uri-percent-encoding-peg
@@ -154,7 +154,7 @@
     ~(let [,$name ,name
            ,$eval-env ,eval-env
            s (get-in ,$eval-env [,$name :value] ,$name)]
-       (,logging/log (string/format "binding-to-lsp-item: s is %m" s) [:completion] 2)
+       (,logging/log (string/format "binding-to-lsp-item: s is %m" s) [:completion] 3)
        {:label ,$name :kind
         (case (type s)
           :symbol    12 :boolean   6

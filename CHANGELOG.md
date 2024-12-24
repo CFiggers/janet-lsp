@@ -2,6 +2,31 @@
 All notable changes to this project will be documented in this file.
 Format for entires is <version-string> - release date.
 
+## 0.0.10 - 2024-12-22
+
+- Logging 
+  - Rotate log files and overwrite eventually to avoid indefinite log file size
+  - Adjusted some log levels
+- New methods
+  - `enableDebug` and `disableDebug` - Allow clients to set `(dyn :debug)` while running
+  - `setLogLevel` and `setLogToFileLevel` - Allow clients to change debug level to console and file
+
+## 0.0.9 - 2024-12-07
+
+- Bugfixes
+  - Decode percent encoding in URIs before saving to or lookup from `state`
+  - Typo: ":documnts" rather than ":documents", causing redundant keys in `state` when diagnostics are pull (vs push)
+  - Don't exit loop when handle-message returns an `:error` result, instead report it and reenter loop gracefully
+- Misc
+  - Formatting tweaks
+  - New "janet/tellJoke" method (testing for future custom LSP RPC calls)
+
+## 0.0.8 - 2024-11-24
+
+- Bug Fixes
+  - Additional jpm defs (by @strangepete)
+  - New `eval-env`s should set `*out*` to `stderr`
+
 ## 0.0.7 - 2024-08-11
 
 - Core loop

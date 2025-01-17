@@ -6,11 +6,17 @@
 
 (def word-peg
   (peg/compile
-    ~{:s     (set " \t\0\f\v") :s* (any :s) :s+ (some :s)
-      :paren (/ (* (column) (set "()") (constant "") (column)) ,|[(dec $0) $1 (- $2 2)])
-      :ws    (/ (* (column) :s+ (constant "") (column)) ,|$&)
-      :word  (/ (* (column) (<- (some (if-not (set " ()") 1))) (? (+ :s ")")) (column)) ,|[(dec $0) $1 (- $2 2)])
-      :main  (some (+ :paren :ws :word -1))}))
+    ~{:s (set " \t\0\f\v") :s* (any :s) :s+ (some :s)
+      :paren (/ (* (position) (set "()[]{}'\"`") (constant "") (position))
+                ,|[$0 $1 (dec $2)])
+      :ws (/ (* (position) :s+ (constant "") (position))
+             ,|[$0 $1 (dec $2)])
+      :word (/ (* (position)
+                  (<- (some (if-not (set " ()[]{}`'\"") 1)))
+                  (? (+ :s ")"))
+                  (position))
+               ,|[$0 $1 (dec $2)])
+      :main (some (+ :paren :ws :word -1))}))
 
 (defmacro first-where [pred ds]
   (with-syms [$pred $ds]

@@ -9,12 +9,47 @@
   (test (lookup {:line 2 :character 0} "1\n23\n45") "4")
   (test (lookup {:line 2 :character 1} "1\n23\n45") "5"))
 
+(test (peg/match word-peg "  (wibble) (wobble with args))")
+      @[[0 "" 1]
+        [2 "" 2]
+        [3 "wibble" 9]
+        [10 "" 10]
+        [11 "" 11]
+        [12 "wobble" 18]
+        [19 "with" 23]
+        [24 "args" 28]
+        [29 "" 29]])
+
+(deftest "word-at"
+  (def sample
+    ``
+    (defn wibble "some docs" [] :wibble)
+    (defn wobble [] :wobble)
+
+    (defn test [test]
+      (wibble) (wobble))
+    
+    (test "test")
+    ``)
+
+  (test (word-at {:line 0 :character 1} sample) {:range [1 5] :word "defn"})
+  (test (word-at {:line 1 :character 6} sample) {:range [6 12] :word "wobble"})
+
+  (test (word-at {:line 4 :character 0} sample) {:range [0 1] :word ""})
+  (test (word-at {:line 4 :character 1} sample) {:range [0 1] :word ""})
+  (test (word-at {:line 4 :character 2} sample) {:range [2 2] :word ""})
+  (test (word-at {:line 4 :character 3} sample) {:range [3 9] :word "wibble"})
+  (test (word-at {:line 4 :character 4} sample) {:range [3 9] :word "wibble"}))
+
 (test (peg/match word-peg "(defn main [& args] (+ 1 1))")
       @[[0 "" 0]
         [1 "defn" 5]
         [6 "main" 10]
-        [11 "[&" 13]
-        [14 "args]" 19]
+        [11 "" 11]
+        [12 "&" 13]
+        [14 "args" 17]
+        [18 "" 18]
+        [19 "" 19]
         [20 "" 20]
         [21 "+" 22]
         [23 "1" 24]
@@ -280,10 +315,10 @@
 
 (deftest "test word-peg2"
   (def sample "(defn main [& args] (print \"hello world\"))")
-  (test (peg/match word-peg sample) @[[0 "" 0] [1 "defn" 5] [6 "main" 10] [11 "[&" 13] [14 "args]" 19] [20 "" 20] [21 "print" 26] [27 "\"hello" 33] [34 "world\"" 40] [41 "" 41]]))
+  (test (peg/match word-peg sample) @[[0 "" 0] [1 "defn" 5] [6 "main" 10] [11 "" 11] [12 "&" 13] [14 "args" 17] [18 "" 18] [19 "" 19] [20 "" 20] [21 "print" 26] [27 "" 27] [28 "hello" 33] [34 "world" 38] [39 "" 39] [40 "" 40] [41 "" 41]]))
 
 (deftest "test word-peg3"
-  (test (map |(word-at {:line 0 :character $} "(defn main [& args] (print \"hello world\"))") (range 42)) @[{:range [0 0] :word ""} {:range [1 5] :word "defn"} {:range [1 5] :word "defn"} {:range [1 5] :word "defn"} {:range [1 5] :word "defn"} {:range [1 5] :word "defn"} {:range [6 10] :word "main"} {:range [6 10] :word "main"} {:range [6 10] :word "main"} {:range [6 10] :word "main"} {:range [6 10] :word "main"} {:range [11 13] :word "[&"} {:range [11 13] :word "[&"} {:range [11 13] :word "[&"} {:range [14 19] :word "args]"} {:range [14 19] :word "args]"} {:range [14 19] :word "args]"} {:range [14 19] :word "args]"} {:range [14 19] :word "args]"} {:range [14 19] :word "args]"} {:range [20 20] :word ""} {:range [21 26] :word "print"} {:range [21 26] :word "print"} {:range [21 26] :word "print"} {:range [21 26] :word "print"} {:range [21 26] :word "print"} {:range [21 26] :word "print"} {:range [27 33] :word "\"hello"} {:range [27 33] :word "\"hello"} {:range [27 33] :word "\"hello"} {:range [27 33] :word "\"hello"} {:range [27 33] :word "\"hello"} {:range [27 33] :word "\"hello"} {:range [27 33] :word "\"hello"} {:range [34 40] :word "world\""} {:range [34 40] :word "world\""} {:range [34 40] :word "world\""} {:range [34 40] :word "world\""} {:range [34 40] :word "world\""} {:range [34 40] :word "world\""} {:range [34 40] :word "world\""} {:range [41 41] :word ""}]))
+  (test (map |(word-at {:line 0 :character $} "(defn main [& args] (print \"hello world\"))") (range 42)) @[{:range [0 0] :word ""} {:range [1 5] :word "defn"} {:range [1 5] :word "defn"} {:range [1 5] :word "defn"} {:range [1 5] :word "defn"} {:range [1 5] :word "defn"} {:range [6 10] :word "main"} {:range [6 10] :word "main"} {:range [6 10] :word "main"} {:range [6 10] :word "main"} {:range [6 10] :word "main"} {:range [11 11] :word ""} {:range [12 13] :word "&"} {:range [12 13] :word "&"} {:range [14 17] :word "args"} {:range [14 17] :word "args"} {:range [14 17] :word "args"} {:range [14 17] :word "args"} {:range [18 18] :word ""} {:range [19 19] :word ""} {:range [20 20] :word ""} {:range [21 26] :word "print"} {:range [21 26] :word "print"} {:range [21 26] :word "print"} {:range [21 26] :word "print"} {:range [21 26] :word "print"} {:range [21 26] :word "print"} {:range [27 27] :word ""} {:range [28 33] :word "hello"} {:range [28 33] :word "hello"} {:range [28 33] :word "hello"} {:range [28 33] :word "hello"} {:range [28 33] :word "hello"} {:range [28 33] :word "hello"} {:range [34 38] :word "world"} {:range [34 38] :word "world"} {:range [34 38] :word "world"} {:range [34 38] :word "world"} {:range [34 38] :word "world"} {:range [39 39] :word ""} {:range [40 40] :word ""} {:range [41 41] :word ""}]))
 
 (deftest "word-at-peg: line 0, character 12, of \"word not a word\n23\n45\""
   (test (word-at {:line 0 :character 12} "word not a word\n23\n45") {:range [11 14] :word "word"}))
@@ -298,4 +333,4 @@
   (test (word-at {:line 0 :character 4} " word ") {:range [1 5] :word "word"}))
 
 (deftest "word-at-peg: line 0, character 0, of \"  \""
-  (test (word-at {:line 0 :character 0} "  ") {:range [1 3] :word ""}))
+  (test (word-at {:line 0 :character 0} "  ") {:range [0 1] :word ""}))

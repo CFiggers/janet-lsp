@@ -31,7 +31,7 @@ Desirable, but possibly more complicated/difficult features include:
 ## Caveats
 
 - MacOS support is _mostly_ untested (but as far as I know there shouldn't be major differences). 
-- The only editor integration currently tested against is [Visual Studio Code](https://code.visualstudio.com/).
+- The only editor integrations currently tested against are [Visual Studio Code](https://code.visualstudio.com/) and [Neovim](https://neovim.io/).
 - I've never written a language server before, so I don't really know what I'm doing. Help me, if you'd like!
 
 ## Clients (i.e. Editors)

@@ -73,7 +73,18 @@
       (file/write stderr (string output "\n"))))
   nil)
 
+(defmacro dbg [output categories &opt level id]
+  (default level 3)
+  (with-syms [$output $categories $level $id]
+    ~(let [,$output (case (type ,output) :string ,output (string/format "%m" ,output))
+           ,$categories ,categories
+           ,$level ,level
+           ,$id ,id]
+       (,log (string/format "[DEBUG%s:%s] %s" (if ,$id (string ":" ,$id) "") (first ,$categories) ,$output)
+             ,$categories ,$level))))
+
 (defmacro info [output categories &opt level id]
+  (default level 2)
   (with-syms [$output $categories $level $id]
     ~(let [,$output (case (type ,output) :string ,output (string/format "%m" ,output))
            ,$categories ,categories
@@ -83,6 +94,7 @@
              ,$categories ,$level))))
 
 (defmacro message [output categories &opt level id]
+  (default level 2)
   (with-syms [$output $categories $level $id]
     ~(let [,$output (case (type ,output) :string ,output (string/format "%m" ,output))
            ,$categories ,categories
@@ -91,11 +103,42 @@
        (,log (string/format "[MESSAGE%s:%s] %s" (if ,$id (string ":" ,$id) "") (first ,$categories) ,$output)
              ,$categories ,$level))))
 
+(defmacro warn [output categories &opt level id]
+  (default level 1)
+  (with-syms [$output $categories $level $id]
+    ~(let [,$output (case (type ,output) :string ,output (string/format "%m" ,output))
+           ,$categories ,categories
+           ,$level ,level
+           ,$id ,id]
+       (,log (string/format "[WARNING%s:%s] %s" (if ,$id (string ":" ,$id) "") (first ,$categories) ,$output)
+             ,$categories ,$level))))
+
 (defmacro err [output categories &opt level id]
+  (default level 0)
   (with-syms [$output $categories $level $id]
     ~(let [,$output (case (type ,output) :string ,output (string/format "%m" ,output))
            ,$categories ,categories
            ,$level ,level
            ,$id ,id]
        (,log (string/format "[ERROR%s:%s] %s" (if ,$id (string ":" ,$id) "") (first ,$categories) ,$output)
+             ,$categories ,$level))))
+
+(defmacro fatal [output categories &opt level id]
+  (default level 0)
+  (with-syms [$output $categories $level $id]
+    ~(let [,$output (case (type ,output) :string ,output (string/format "%m" ,output))
+           ,$categories ,categories
+           ,$level ,level
+           ,$id ,id]
+       (,log (string/format "[FATAL%s:%s] %s" (if ,$id (string ":" ,$id) "") (first ,$categories) ,$output)
+             ,$categories ,$level))))
+
+(defmacro unknown [output categories &opt level id]
+  (default level 0)
+  (with-syms [$output $categories $level $id]
+    ~(let [,$output (case (type ,output) :string ,output (string/format "%m" ,output))
+           ,$categories ,categories
+           ,$level ,level
+           ,$id ,id]
+       (,log (string/format "[UNKNOWN%s:%s] %s" (if ,$id (string ":" ,$id) "") (first ,$categories) ,$output)
              ,$categories ,$level))))

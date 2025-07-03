@@ -2,6 +2,11 @@
 All notable changes to this project will be documented in this file.
 Format for entires is <version-string> - release date.
 
+## Unreleased
+
+- Logging 
+  - Clarify logging levels using more standard labeling (debug, info, warn, error, fatal, unknown)
+
 ## 0.0.10 - 2024-12-22
 
 - Logging 

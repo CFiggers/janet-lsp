@@ -44,7 +44,7 @@
   :setup (fn []
            (start-lsp))
   :reset (fn [context]
-           (printf "context is (from reset): %q" context)
+           # (printf "context is (from reset): %q" context)
            (exit-lsp context)
            (os/proc-wait (context :process))
            (merge-into context (start-lsp)))
@@ -54,6 +54,7 @@
 
 (deftest: with-process "Starts and exits" [context]
   (var got (ev/read (context :from-lsp) 2048))
+  
   (test (jayson/decode (last (string/split "\r\n" got)) true)
     @{:id 0
       :jsonrpc "2.0"
@@ -65,25 +66,77 @@
                                 :hoverProvider true
                                 :signatureHelpProvider @{:triggerCharacters @[" "]}
                                 :textDocumentSync @{:change 1 :openClose true}}
-                :serverInfo @{:commit "3a20fa7"
+                :serverInfo @{:commit "7b8e9e5"
                               :name "janet-lsp"
-                              :version "0.0.6"}}})
+                              :version "0.0.10"}}})
+  
   (write-output context (jayson/encode {:jsonrpc 2.0 
                                         :method "janet/serverInfo" 
-                                        :params {}}))
+                                        :params {}})) 
   (set got (ev/read (context :from-lsp) 2048))
+  
   (test (jayson/decode (last (string/split "\r\n" got)) true)
     @{:jsonrpc "2.0"
-      :result @{:server-info @{:commit "3a20fa7"
+      :result @{:server-info @{:commit "7b8e9e5"
                                :name "janet-lsp"
-                               :version "0.0.6"}}}) )
+                               :version "0.0.10"}}}) )
 
 (deftest: with-process "test textDocument/didOpen" [context]
   (var got (ev/read (context :from-lsp) 2048)) 
   (write-output context (slurp "./test/resources/textDocument_didOpen_rpc.json"))
   (set got (ev/read (context :from-lsp) 2048))
+  
   (test (jayson/decode (last (string/split "\r\n" got)) true)
-    @{:jsonrpc "2.0"
-      :method "textDocument/publishDiagnostics"
-      :params @{:diagnostics @[]
-                :uri "file:///home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-format-file-after.janet"}}))
+        @{:jsonrpc "2.0"
+          :method "textDocument/publishDiagnostics"
+          :params @{:diagnostics @[]
+                    :uri "file:///home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-format-file-after.janet"}}))
+
+(deftest-type with-process-open
+  :setup (fn []
+           (start-lsp))
+  :reset (fn [context]
+           (exit-lsp context)
+           (os/proc-wait (context :process))
+           (merge-into context (start-lsp)) 
+
+           # Consume the `initialize` response from the LSP server 
+           (var got (ev/read (context :from-lsp) 2048)) 
+          
+           # Call "textDocument/didOpen" to load "./test/test-format-file-after.janet"
+           (write-output context (slurp "./test/resources/textDocument_didOpen_rpc.json"))
+           (set got (ev/read (context :from-lsp) 2048)))
+  :teardown (fn [context]
+              (exit-lsp context)
+              (os/proc-wait (context :process))))
+
+(deftest: with-process-open "test textDocument/didChange" [context] 
+  (write-output context (slurp "./test/resources/textDocument_didChange_rpc.json"))
+  (var got (ev/read (context :from-lsp) 2048))
+  
+  (test (jayson/decode (last (string/split "\r\n" got)) true)
+        @{:jsonrpc "2.0"
+          :method "textDocument/publishDiagnostics"
+          :params @{:diagnostics @[]
+                    :uri "file:///home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-format-file-after.janet"}}))
+
+(deftest: with-process-open "test textDocument/hover" [context]
+  (write-output context (slurp "./test/resources/textDocument_hover_rpc.json")) 
+  (var got (ev/read (context :from-lsp) 2048)) 
+  
+  (test (jayson/decode (last (string/split "\r\n" got)) true)
+        @{:id 350
+          :jsonrpc "2.0"
+          :result @{:contents @{:kind "markdown"
+                                :value "macro  \nboot.janet on line 3151, column 1\n\n```janet\n(use & modules)\n```\n\nSimilar to `import`, but imported bindings are not prefixed with a module\nidentifier. Can also import multiple modules in one shot."}
+                    :range @{:end @{:character 4 :line 0}
+                             :start @{:character 1 :line 0}}}}))
+
+(deftest: with-process-open "test textDocument/diagnostic" [context]
+  (write-output context (slurp "./test/resources/textDocument_diagnostic_rpc.json")) 
+  (var got (ev/read (context :from-lsp) 2048))
+  
+  (test (jayson/decode (last (string/split "\r\n" got)) true)
+        @{:id 6
+          :jsonrpc "2.0"
+          :result @{:items @[] :kind "full"}}))

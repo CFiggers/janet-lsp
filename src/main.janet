@@ -493,7 +493,8 @@
   (def host "127.0.0.1")
   (def port (if ((dyn :opts) :port) (string ((dyn :opts) :port)) "8037"))
 
-  (print (string/format "Janet LSP Debug Console Active on %s:%s" host port))
+  (print "Janet LSP Debug Console v" version "-" commit)
+  (print (string/format "Listening on %s:%s" host port))
   (print "Awaiting reports from running LSP...")
 
   (var linecount 0)

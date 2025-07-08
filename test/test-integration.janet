@@ -140,3 +140,16 @@
         @{:id 6
           :jsonrpc "2.0"
           :result @{:items @[] :kind "full"}}))
+
+(deftest: with-process-open "test textDocument/completion" [context]
+  (write-output context (slurp "./test/resources/textDocument_completion_rpc.json"))
+  (var got (ev/read (context :from-lsp) 30000))
+
+  (pp got)
+
+  (test (as-> (jayson/decode (last (string/split "\r\n" got)) true) x
+              (put-in x [:result :items] (string/format "{{%d items here}}" (length (get-in x [:result :items])))))
+        @{:id 6
+          :jsonrpc "2.0"
+          :result @{:isIncomplete true
+                    :items "{{738 items here}}"}}))

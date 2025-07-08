@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","method":"textDocument/completion","id":6,"params":{"position":{"line":1,"character":2},"textDocument":{"uri":"file:///home/caleb/projects/vscode/vscode-janet-plus-plus/janet-lsp/test/test-format-file-after.janet"},"context":{"triggerKind":1}}}

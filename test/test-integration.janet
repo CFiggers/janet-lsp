@@ -56,19 +56,19 @@
   (var got (ev/read (context :from-lsp) 2048))
 
   (test (jayson/decode (last (string/split "\r\n" got)) true)
-        @{:id 0
-          :jsonrpc "2.0"
-          :result @{:capabilities @{:completionProvider @{:resolveProvider true}
-                                    :definitionProvider true
-                                    :diagnosticProvider @{:interFileDependencies true
-                                                          :workspaceDiagnostics false}
-                                    :documentFormattingProvider true
-                                    :hoverProvider true
-                                    :signatureHelpProvider @{:triggerCharacters @[" "]}
-                                    :textDocumentSync @{:change 1 :openClose true}}
-                    :serverInfo @{:commit "f015519"
-                                  :name "janet-lsp"
-                                  :version "0.0.10"}}})
+    @{:id 0
+      :jsonrpc "2.0"
+      :result @{:capabilities @{:completionProvider @{:resolveProvider true}
+                                :definitionProvider true
+                                :diagnosticProvider @{:interFileDependencies true
+                                                      :workspaceDiagnostics false}
+                                :documentFormattingProvider true
+                                :hoverProvider true
+                                :signatureHelpProvider @{:triggerCharacters @[" "]}
+                                :textDocumentSync @{:change 1 :openClose true}}
+                :serverInfo @{:commit "b8610f2"
+                              :name "janet-lsp"
+                              :version "0.0.10"}}})
 
   (write-output context (jayson/encode {:jsonrpc 2.0
                                         :method "janet/serverInfo"
@@ -76,10 +76,10 @@
   (set got (ev/read (context :from-lsp) 2048))
 
   (test (jayson/decode (last (string/split "\r\n" got)) true)
-        @{:jsonrpc "2.0"
-          :result @{:server-info @{:commit "f015519"
-                                   :name "janet-lsp"
-                                   :version "0.0.10"}}}))
+    @{:jsonrpc "2.0"
+      :result @{:server-info @{:commit "b8610f2"
+                               :name "janet-lsp"
+                               :version "0.0.10"}}}))
 
 (deftest: with-process "test textDocument/didOpen" [context]
   (var got (ev/read (context :from-lsp) 2048))
@@ -145,11 +145,30 @@
   (write-output context (slurp "./test/resources/textDocument_completion_rpc.json"))
   (var got (ev/read (context :from-lsp) 30000))
 
-  (pp got)
-
   (test (as-> (jayson/decode (last (string/split "\r\n" got)) true) x
               (put-in x [:result :items] (string/format "{{%d items here}}" (length (get-in x [:result :items])))))
         @{:id 6
           :jsonrpc "2.0"
           :result @{:isIncomplete true
                     :items "{{738 items here}}"}}))
+
+(deftest: with-process-open "test completionItem/resolve" [context]
+  (write-output context (slurp "./test/resources/textDocument_completion_rpc.json"))
+  (var got (ev/read (context :from-lsp) 30000))
+
+  (test (as-> (jayson/decode (last (string/split "\r\n" got)) true) x
+              (put-in x [:result :items] (string/format "{{%d items here}}" (length (get-in x [:result :items])))))
+        @{:id 6
+          :jsonrpc "2.0"
+          :result @{:isIncomplete true
+                    :items "{{738 items here}}"}})
+  
+  (write-output context (slurp "./test/resources/completionItem_resolve_rpc.json"))
+  (set got (ev/read (context :from-lsp) 2048))
+  
+  (test (jayson/decode (last (string/split "\r\n" got)) true)
+    @{:id 31
+      :jsonrpc "2.0"
+      :result @{:documentation @{:kind "markdown"
+                                 :value "cfunction  \nsrc/core/corelib.c on line 330, column 1\n\n```janet\n(string & xs)\n```\n\nCreates a string by concatenating the elements of `xs` together. If an element is not a byte sequence, it is converted to bytes via `describe`. Returns the new string."}
+                :label "string"}}))

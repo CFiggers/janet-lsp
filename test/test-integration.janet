@@ -55,31 +55,35 @@
 (deftest: with-process "Starts and exits" [context]
   (var got (ev/read (context :from-lsp) 2048))
 
-  (test (jayson/decode (last (string/split "\r\n" got)) true)
-    @{:id 0
-      :jsonrpc "2.0"
-      :result @{:capabilities @{:completionProvider @{:resolveProvider true}
-                                :definitionProvider true
-                                :diagnosticProvider @{:interFileDependencies true
-                                                      :workspaceDiagnostics false}
-                                :documentFormattingProvider true
-                                :hoverProvider true
-                                :signatureHelpProvider @{:triggerCharacters @[" "]}
-                                :textDocumentSync @{:change 1 :openClose true}}
-                :serverInfo @{:commit "b8610f2"
-                              :name "janet-lsp"
-                              :version "0.0.10"}}})
+  (test (-> (jayson/decode (last (string/split "\r\n" got)) true)
+            (put-in [:result :serverInfo :commit] "{{commit}}")
+            (put-in [:result :serverInfo :version] "{{version}}"))
+        @{:id 0
+          :jsonrpc "2.0"
+          :result @{:capabilities @{:completionProvider @{:resolveProvider true}
+                                    :definitionProvider true
+                                    :diagnosticProvider @{:interFileDependencies true
+                                                          :workspaceDiagnostics false}
+                                    :documentFormattingProvider true
+                                    :hoverProvider true
+                                    :signatureHelpProvider @{:triggerCharacters @[" "]}
+                                    :textDocumentSync @{:change 1 :openClose true}}
+                    :serverInfo @{:commit "{{commit}}"
+                                  :name "janet-lsp"
+                                  :version "{{version}}"}}})
 
   (write-output context (jayson/encode {:jsonrpc 2.0
                                         :method "janet/serverInfo"
                                         :params {}}))
   (set got (ev/read (context :from-lsp) 2048))
 
-  (test (jayson/decode (last (string/split "\r\n" got)) true)
-    @{:jsonrpc "2.0"
-      :result @{:server-info @{:commit "b8610f2"
-                               :name "janet-lsp"
-                               :version "0.0.10"}}}))
+  (test (-> (jayson/decode (last (string/split "\r\n" got)) true)
+            (put-in [:result :serverInfo :commit] "{{commit}}")
+            (put-in [:result :serverInfo :version] "{{version}}"))
+        @{:jsonrpc "2.0"
+          :result @{:serverInfo @{:commit "{{commit}}"
+                                  :name "janet-lsp"
+                                  :version "{{version}}"}}}))
 
 (deftest: with-process "test textDocument/didOpen" [context]
   (var got (ev/read (context :from-lsp) 2048))

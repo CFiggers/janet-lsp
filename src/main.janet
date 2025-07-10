@@ -287,7 +287,7 @@
   Called by the LSP client to request information about the server.
   ``
   [state params]
-  (let [message {:server-info {:name "janet-lsp"
+  (let [message {:serverInfo {:name "janet-lsp"
                                :version version
                                :commit commit}}]
     (logging/message message [:info])

@@ -206,12 +206,12 @@
         {:word hover-word :range [start end]} (lookup/word-at {:line line :character character} content)
         hover-text (doc/my-doc* (symbol hover-word) eval-env)
         _ (logging/log (string/format "on-document-hover: hover-text is %m" hover-text) [:hover] 1)
-        message (match hover-word
-                  nil {}
-                  _ {:contents {:kind "markdown"
-                                :value hover-text}
-                     :range {:start {:line line :character start}
-                             :end {:line line :character end}}})]
+        message (if (and hover-word hover-text)
+                  {:contents {:kind "markdown"
+                              :value hover-text}
+                   :range {:start {:line line :character start}
+                           :end {:line line :character end}}}
+		  :json/null)]
     (logging/message message [:hover] 1)
     [:ok state message]))
 

@@ -1,10 +1,12 @@
 (import ../libs/jayson :prefix "json/")
 (import ../libs/fmt)
+(import ../libs/utils)
 (import ./doc)
 (import ./eval)
 (import ./logging)
 (import ./lookup)
 (import ./rpc)
+(import ./parser)
 
 (import cmd)
 (import spork/argparse)
@@ -170,10 +172,14 @@
   (let [uri (first (peg/match uri-percent-encoding-peg
                               (get-in params ["textDocument" "uri"])))
         eval-env (get-in state [:documents uri :eval-env])
+        content (get-in state [:documents uri :content])
+        location (utils/get-location params)
+        local-bindings (parser/get-syms-at-loc location content)
         bindings (seq [bind :in (all-bindings eval-env)]
                    (binding-to-lsp-item bind eval-env))
+        deduped-bindings (utils/concat-dedup-by-label local-bindings bindings)
         message {:isIncomplete true
-                 :items bindings}]
+                 :items deduped-bindings}]
     (logging/message message [:completion] 1)
     [:ok state message]))
 

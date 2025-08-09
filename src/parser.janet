@@ -62,7 +62,7 @@
       :bytes '(* "\"" (any (+ :escape (if-not "\"" 1))) "\"")
       :string (drop :bytes)
       :numeric (+ :d "_")
-      :number (* (? (set "+-")) 
+      :number (* (? (set "+-"))
                  (+ (* :d (? (* :numeric)) (? (* "." :numeric)))
                     (* "." (* :numeric)))
                  (? (* (+ "e" "E") (? (set "-+")) (some :d))))
@@ -223,14 +223,14 @@
 (defn find-symbols-in-nodes [head nodes pos]
   (if-let [node (first nodes)]
     (or
-     (when (before-node? pos node)
-       (tuple head @[]))
-     (if-let [syms (find-symbols-in-node node pos)]
-       (tuple head syms))
-     (if-let [rest (array/slice nodes 1)
-              result (find-symbols-in-nodes (tuple node) rest pos)
-              (heads syms) result]
-       (tuple (tuple/join head heads) syms)))
+      (when (before-node? pos node)
+        (tuple head @[]))
+      (if-let [syms (find-symbols-in-node node pos)]
+        (tuple head syms))
+      (if-let [rest (array/slice nodes 1)
+               result (find-symbols-in-nodes (tuple node) rest pos)
+               (heads syms) result]
+        (tuple (tuple/join head heads) syms)))
     (tuple head @[])))
 
 (defn get-syms-from-tree [tree pos]
@@ -285,4 +285,3 @@
         index (lookup/to-index loc source)
         tree (make-tree blanked-source)]
     (get-syms-from-tree tree index)))
-

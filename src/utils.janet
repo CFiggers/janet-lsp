@@ -13,8 +13,3 @@
   [params]
   (let [pos (get-in params ["position"])]
     {:character (get pos "character") :line (get pos "line")}))
-
-(defn flatmap
-  [f & vs]
-  (flatten (apply map f vs)))
-

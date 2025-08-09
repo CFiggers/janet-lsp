@@ -7,7 +7,7 @@
   (test (main/parse-content-length "123:456:789") 456)
   (test (main/parse-content-length "0123:456::::789") 456))
 
-(test (peg/match uri-percent-encoding-peg "file:///c%3A/Users/pete/Desktop/code/libmpsse")
+(test (peg/match main/uri-percent-encoding-peg "file:///c%3A/Users/pete/Desktop/code/libmpsse")
       @["file:///c:/Users/pete/Desktop/code/libmpsse"])
 
 (deftest "test binding-to-lsp-item"

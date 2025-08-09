@@ -40,7 +40,7 @@
                             (if (string/has-prefix? "file:" uri)
                               (string/slice uri 5) uri)))]
 
-    (logging/info (string/format "`eval-buffer` returned: %m" diagnostics) [:evaluation] 3)
+    (logging/dbg (string/format "`eval-buffer` returned: %m" diagnostics) [:evaluation])
 
     (each res diagnostics
       (match res
@@ -51,8 +51,8 @@
                       :end {:line (max 0 (dec line)) :character col}}
                      :message message})))
 
-    (logging/info (string/format "`run-diagnostics` is returning these errors: %m" items) [:evaluation] 2)
-    (logging/info (string/format "`run-diagnostics` is returning this eval-context: %m" env) [:evaluation] 3)
+    (logging/info (string/format "`run-diagnostics` is returning these errors: %m" items) [:evaluation])
+    (logging/dbg (string/format "`run-diagnostics` is returning this eval-context: %m" env) [:evaluation])
     [items env]))
 
 (def uri-percent-encoding-peg
@@ -117,9 +117,9 @@
                               (get-in params ["textDocument" "uri"])))
         content (get-in state [:documents uri :content])
         new-content (freeze (fmt/format (string/slice content)))]
-    (logging/info (string/format "old content: %m" content) [:formatting] 2)
-    (logging/info (string/format "new content: %m" new-content) [:formatting] 2)
-    (logging/info (string/format "formatting changed something: %m" (not= content new-content)) [:formatting] 2)
+    (logging/info (string/format "old content: %m" content) [:formatting])
+    (logging/info (string/format "new content: %m" new-content) [:formatting])
+    (logging/info (string/format "formatting changed something: %m" (not= content new-content)) [:formatting])
     (if (= content new-content)
       (do
         (logging/info "No changes" [:formatting])
@@ -156,7 +156,7 @@
     ~(let [,$name ,name
            ,$eval-env ,eval-env
            s (get-in ,$eval-env [,$name :value] ,$name)]
-       (,logging/log (string/format "binding-to-lsp-item: s is %m" s) [:completion] 3)
+       (,logging/dbg (string/format "binding-to-lsp-item: s is %m" s) [:completion] 3)
        {:label ,$name :kind
         (case (type s)
           :symbol    12 :boolean   6
@@ -180,7 +180,7 @@
         deduped-bindings (utils/concat-dedup-by-label local-bindings bindings)
         message {:isIncomplete true
                  :items deduped-bindings}]
-    (logging/message message [:completion] 1)
+    (logging/message message [:completion])
     [:ok state message]))
 
 (defn on-completion-item-resolve [state params]
@@ -200,7 +200,7 @@
                   :value (doc/my-doc*
                            (symbol lbl)
                            (or eval-env (make-env root-env)))}}]
-    (logging/message message [:completion] 1)
+    (logging/message message [:completion])
     [:ok state message]))
 
 (defn on-document-hover [state params]
@@ -211,14 +211,14 @@
         {"line" line "character" character} (get params "position")
         {:word hover-word :range [start end]} (lookup/word-at {:line line :character character} content)
         hover-text (doc/my-doc* (symbol hover-word) eval-env)
-        _ (logging/log (string/format "on-document-hover: hover-text is %m" hover-text) [:hover] 1)
-        message (match hover-word
-                  nil {}
-                  _ {:contents {:kind "markdown"
-                                :value hover-text}
-                     :range {:start {:line line :character start}
-                             :end {:line line :character end}}})]
-    (logging/message message [:hover] 1)
+        _ (logging/log (string/format "on-document-hover: hover-text is %m" hover-text) [:hover])
+        message (if (and hover-word hover-text)
+                  {:contents {:kind "markdown"
+                              :value hover-text}
+                   :range {:start {:line line :character start}
+                           :end {:line line :character end}}}
+		  :json/null)]
+    (logging/message message [:hover])
     [:ok state message]))
 
 (defn on-document-signature-help [state params]
@@ -247,7 +247,7 @@
   that this server provides so the client knows what it can request.
   ``
   [state params]
-  (logging/info (string/format "on-initialize called with these params: %m" params) [:initialize] 2)
+  (logging/info (string/format "on-initialize called with these params: %m" params) [:initialize])
   (if-let [diagnostic? (get-in params ["capabilities" "textDocument" "diagnostic"])]
     (setdyn :push-diagnostics false)
     (setdyn :push-diagnostics true))
@@ -265,7 +265,7 @@
                  :serverInfo {:name "janet-lsp"
                               :version version
                               :commit commit}}]
-    (logging/message message [:initialize] 1)
+    (logging/message message [:initialize])
     [:ok state message]))
 
 (defn on-shutdown
@@ -293,10 +293,10 @@
   Called by the LSP client to request information about the server.
   ``
   [state params]
-  (let [message {:server-info {:name "janet-lsp"
+  (let [message {:serverInfo {:name "janet-lsp"
                                :version version
                                :commit commit}}]
-    (logging/message message [:info] 1)
+    (logging/message message [:info])
     [:ok state message]))
 
 (defn on-document-definition
@@ -321,11 +321,11 @@
                                 end is: %d
                                 -------------------------
                                 ``
-                                 request-uri (length content) line character define-word start end) [:definition] 2)
-    (logging/info (string/format "symbol is: %s" (symbol define-word)) [:definition] 2)
-    (logging/info (string/format "eval-env is: %m" eval-env) [:definition] 3)
-    (logging/info (string/format "symbol lookup is: %m" (get eval-env (symbol define-word) nil)) [:definition] 2)
-    (logging/info (string/format "`:source-map` is: %m" (get (get eval-env (symbol define-word) nil) :source-map nil)) [:definition] 2)
+                                 request-uri (length content) line character define-word start end) [:definition])
+    (logging/info (string/format "symbol is: %s" (symbol define-word)) [:definition])
+    (logging/dbg (string/format "eval-env is: %m" eval-env) [:definition])
+    (logging/info (string/format "symbol lookup is: %m" (get eval-env (symbol define-word) nil)) [:definition])
+    (logging/info (string/format "`:source-map` is: %m" (get (get eval-env (symbol define-word) nil) :source-map nil)) [:definition])
     (if-let [symbol-lookup (get eval-env (symbol define-word) nil)
              [uri line col] (get symbol-lookup :source-map nil)
              found (os/stat (path/abspath uri))
@@ -341,7 +341,7 @@
         [:ok state :json/null]))))
 
 (defn on-set-trace [state params]
-  (logging/info (string/format "on-set-trace: %m" params) [:settrace] 2)
+  (logging/info (string/format "on-set-trace: %m" params) [:settrace])
   (case (params "value")
     "off" nil
     "messages" nil
@@ -412,7 +412,7 @@
       "exit" (on-exit state params)
       "$/setTrace" (on-set-trace state params)
       (do
-        (logging/info (string/format "Received unrecognized RPC: %m" method) [:handle] 1)
+        (logging/warn (string/format "Received unrecognized RPC: %m" method) [:handle])
         [:noresponse state]))))
 
 (defn write-response [file response]
@@ -430,14 +430,14 @@
   (let [content-length-line (file/read stdin :line)
         _ (file/read stdin :line)
         input (file/read stdin (parse-content-length content-length-line))]
-    (logging/info (string/format "received json rpc: %s" input) [:rpc :priority] 2)
+    (logging/info (string/format "received json rpc: %s" input) [:rpc :priority])
     (json/decode input)))
 
 (defn message-loop [&named state]
   (logging/info "Loop enter" [:core] 1)
-  (logging/info (string/format "current state is: %m" state) [:priority] 3)
+  (logging/dbg (string/format "current state is: %m" state) [:priority])
   (let [message (read-message)]
-    (logging/info (string/format "got: %q" message) [:core] 3)
+    (logging/dbg (string/format "got: %q" message) [:core])
     (match (try (handle-message message state) ([err fib] [:error state err fib]))
       [:ok new-state & response] (do
                                    (write-response stdout (rpc/success-response (get message "id") ;response))
@@ -499,7 +499,8 @@
   (def host "127.0.0.1")
   (def port (if ((dyn :opts) :port) (string ((dyn :opts) :port)) "8037"))
 
-  (print (string/format "Janet LSP Debug Console Active on %s:%s" host port))
+  (print "Janet LSP Debug Console v" version "-" commit)
+  (print (string/format "Listening on %s:%s" host port))
   (print "Awaiting reports from running LSP...")
 
   (var linecount 0)

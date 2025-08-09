@@ -13,9 +13,9 @@
              ,|[$0 $1 (dec $2)])
       :word (/ (* (position)
                   (<- (some (if-not (set " ()[]{}`'\"") 1)))
-                  (? (+ :s ")"))
-                  (position))
-               ,|[$0 $1 (dec $2)])
+                  (position)
+                  (? (+ :s (set ")}]\""))))
+               ,|[$0 $1 $2])
       :main (some (+ :paren :ws :word -1))}))
 
 (defmacro first-where [pred ds]

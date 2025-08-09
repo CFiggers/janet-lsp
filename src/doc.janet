@@ -2,7 +2,7 @@
 (import ./logging)
 
 (defn make-module-entry [x]
-  (logging/info (string/format "make-module-entry on %m" x) [:hover] 1)
+  (logging/info (string/format "make-module-entry on %m" x) [:hover])
   (let [bind-type (cond
                     (x :redef) (type (in (x :ref) 0))
                     (x :ref) (string :var " (" (type (in (x :ref) 0)) ")")
@@ -106,7 +106,7 @@
   "Look up the signature of a symbol in a given environment."
   [sym env]
   (assert (not (nil? env)) "get-signature: env is nil")
-  (logging/info (string/format "get-signature tried %m" (env sym)) [:hover] 1)
+  (logging/info (string/format "get-signature tried %m" (env sym)) [:hover])
   (if-let [x (env sym)]
     (-> (string/split "\n" (x :doc))
         (array/slice nil 1)
@@ -126,27 +126,27 @@
   "Get the documentation for a symbol in a given environment."
   [sym env]
   (assert env "my-doc*: env is nil")
-  (logging/info (string/format "env is: %m" env) [:hover] 3)
-  (logging/info (string/format "my-doc* tried: %m" (env sym)) [:hover] 3)
+  (logging/dbg (string/format "env is: %m" env) [:hover])
+  (logging/dbg (string/format "my-doc* tried: %m" (env sym)) [:hover])
   (if-let [x (env sym)]
     (make-module-entry x)
     (if (has-value? '[break def do fn if quasiquote quote
                       set splice unquote upscope var while] sym)
       (make-special-form-entry sym)
       (do
-        (logging/info "Not a symbol or a special form, seeking module" [:hover] 1)
+        (logging/info "Not a symbol or a special form, seeking module" [:hover])
         (logging/info (string/format "Regular module/find returns: %m" (module/find (string sym))) [:hover])
         (def module-find-fiber (fiber/new |(module/find (string sym)) :e env))
         (def mff-return (resume module-find-fiber))
-        (logging/info (string/format "mff-return is: %m" mff-return) [:hover] 1)
+        (logging/info (string/format "mff-return is: %m" mff-return) [:hover])
         (def [fullpath mod-kind]
           (if (= :error (fiber/status module-find-fiber))
             nil
             mff-return))
 
-        (logging/info (string/format "env has this in module/cache: %m" (env 'module/cache)) [:hover] 2)
+        (logging/info (string/format "env has this in module/cache: %m" (env 'module/cache)) [:hover])
 
-        (logging/info (string/format "module-find-fiber got %m for %m" mff-return sym) [:hover] 1)
+        (logging/info (string/format "module-find-fiber got %m for %m" mff-return sym) [:hover])
         (def module-cache-fiber (fiber/new |(in module/cache fullpath) :e env))
         (def mcf-return (resume module-cache-fiber))
         (cond

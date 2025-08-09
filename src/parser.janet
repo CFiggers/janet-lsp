@@ -192,40 +192,25 @@
     (get node :value)
     @[]))
 
-(defn- get-parameters
-  [node]
-  (get-value-for-tag :parameters node))
-
 (defn- get-defined-for-tag
   [tag node]
   (let [value (get node :value)]
     (if (indexed? value)
-      (utils/flatmap |(get-value-for-tag tag $) value)
+      (catseq [v :in value] (get-value-for-tag tag v))
       @[])))
 
 (defn- get-fn-names
   [node]
   (array/concat (get-value-for-tag :fn node) (get-defined-for-tag :fn node)))
 
-(defn- get-variables
-  [node]
-  (get-defined-for-tag :variables node))
-
-(defn- build-lsp-symbol-kind
-  [kind]
-  (fn [sym]
-    # convention from existing completion is to
-    # provide symbols rather than strings
-    {:kind kind :label (symbol (get sym :value))}))
-
 (defn- collect-symbols
   [heads]
-  (let [parameters (utils/flatmap get-parameters heads)
-        variables (utils/flatmap get-variables heads)
-        fn-names (utils/flatmap get-fn-names heads)
+  (let [parameters    (catseq [head :in heads] (get-value-for-tag :parameters head))
+        variables     (catseq [head :in heads] (get-defined-for-tag :variables head))
+        fn-names      (catseq [head :in heads] (get-fn-names head))
         pars-and-vars (array/concat parameters variables)
-        lsp-symbols (map (build-lsp-symbol-kind 12) pars-and-vars)
-        lsp-fn-names (map (build-lsp-symbol-kind 3) fn-names)]
+        lsp-symbols   (seq [p-or-v :in pars-and-vars] {:kind 12 :label (symbol (p-or-v :value))})
+        lsp-fn-names  (seq [f :in fn-names] {:kind 3 :label (symbol (f :value))})]
     (array/concat lsp-symbols lsp-fn-names)))
 
 (varfn find-symbols-in-node [])

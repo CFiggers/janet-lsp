@@ -228,36 +228,32 @@
         lsp-fn-names (map (build-lsp-symbol-kind 3) fn-names)]
     (array/concat lsp-symbols lsp-fn-names)))
 
-(var get-syms-from-tree nil)
-(var find-symbols-in-nodes nil)
-(var find-symbols-in-node nil)
-
-(set get-syms-from-tree
-     (fn [tree pos]
-       (let [value (get tree :value)]
-         (when (indexed? value)
-           (if-let [result (find-symbols-in-nodes '() value pos)
-                    [heads syms] result]
-             (array/join syms (collect-symbols heads)))))))
+(varfn find-symbols-in-node [])
 
 (defn- before-node?
   [pos node]
   (when-let [index (get node :index)]
     (< pos index)))
 
-(set find-symbols-in-nodes
-     (fn [head nodes pos]
-       (if-let [node (first nodes)]
-         (or
-           (when (before-node? pos node)
-             (tuple head @[]))
-           (if-let [syms (find-symbols-in-node node pos)]
-             (tuple head syms))
-           (if-let [rest (array/slice nodes 1)
-                    result (find-symbols-in-nodes (tuple node) rest pos)
-                    (heads syms) result]
-             (tuple (tuple/join head heads) syms)))
-         (tuple head @[]))))
+(defn find-symbols-in-nodes [head nodes pos]
+  (if-let [node (first nodes)]
+    (or
+     (when (before-node? pos node)
+       (tuple head @[]))
+     (if-let [syms (find-symbols-in-node node pos)]
+       (tuple head syms))
+     (if-let [rest (array/slice nodes 1)
+              result (find-symbols-in-nodes (tuple node) rest pos)
+              (heads syms) result]
+       (tuple (tuple/join head heads) syms)))
+    (tuple head @[])))
+
+(defn get-syms-from-tree [tree pos]
+  (let [value (get tree :value)]
+    (when (indexed? value)
+      (if-let [result (find-symbols-in-nodes '() value pos)
+               [heads syms] result]
+        (array/join syms (collect-symbols heads))))))
 
 (defn- in-node?
   [pos node]
@@ -266,12 +262,11 @@
     (and (<= start pos)
          (< pos end))))
 
-(set find-symbols-in-node
-     (fn [node pos]
-       (when (in-node? pos node)
-         (if (indexed? (get node :value))
-           (get-syms-from-tree node pos)
-           @[]))))
+(varfn find-symbols-in-node [node pos]
+  (when (in-node? pos node)
+    (if (indexed? (get node :value))
+      (get-syms-from-tree node pos)
+      @[])))
 
 (defn- blank-source
   [source start end]

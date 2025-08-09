@@ -1,6 +1,6 @@
 (import ../libs/jayson :prefix "json/")
 (import ../libs/fmt)
-(import ../libs/utils)
+(import ./utils)
 (import ./doc)
 (import ./eval)
 (import ./logging)

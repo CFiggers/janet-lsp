@@ -1,5 +1,5 @@
 (import ./lookup)
-(import ../libs/utils)
+(import ./utils)
 
 (defn- tagged-value
   [tag]

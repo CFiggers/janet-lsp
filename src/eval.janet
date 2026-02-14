@@ -79,7 +79,7 @@
      |(do (var returnval @[])
           (try (run-context {:chunks chunks
                              :on-compile-error (fn compile-error [msg errf where line col]
-                                                 (array/push returnval {:message msg
+                                                 (array/push returnval {:message (string/format "compile error: %s" msg)
                                                                         :location [line col]
                                                                         :severity 1}))
                              :on-compile-warning (fn compile-warning [msg errf where line col]
@@ -87,14 +87,14 @@
                                                                           :location [line col]
                                                                           :severity 2}))
                              :on-parse-error (fn parse-error [p x]
-                                               (array/push returnval {:message (parser/error p)
+                                               (array/push returnval {:message (string/format "parse error: %s" (parser/error p))
                                                                       :location (parser/where p)
                                                                       :severity 1}))
                              :evaluator flycheck-evaluator
                              :fiber-flags :i
                              :source filename})
-               ([err]
-                (array/push returnval {:message err
+           ([err fib]
+             (array/push returnval {:message (string/format "runtime error: %s" err)
                                     :location [0 0]
                                     :severity 1})))
           returnval) :e fresh-env))

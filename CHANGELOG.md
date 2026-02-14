@@ -2,10 +2,19 @@
 All notable changes to this project will be documented in this file.
 Format for entires is <version-string> - release date.
 
-## Unreleased
+## 0.0.11 - 2026-02-14
 
 - Logging 
   - Clarify logging levels using more standard labeling (debug, info, warn, error, fatal, unknown)
+- Diagnostics 
+  - Better location for runtime errors 
+    - Previously defaulted to line 0, column 0 regardless of actual error location
+  - Clarify type of diagnostic error in diagnostic messages (i.e. compile vs parsing vs runtime)
+  - Report linter warnings in addition to errors, with lower severity
+  - Respect new `:flycheck` metadata convention added by Janet v1.40.0
+    - User-defined functions with `:flycheck` metadata tags will be fully executed by LSP (!)
+- Misc
+  - Apply `spork/fmt` throughout
 
 ## 0.0.10 - 2024-12-22
 

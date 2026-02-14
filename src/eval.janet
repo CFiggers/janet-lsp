@@ -1,24 +1,36 @@
 (use judge)
 (import ./logging)
 
+(varfn is-safe-def :private [])
+
+(var- safe-forms {})
+
 (defn- no-side-effects
   `Check if form may have side effects. If returns true, then the src
   must not have side effects, such as calling a C function.`
   [src]
   (cond
-    (tuple? src) (if (= (tuple/type src) :brackets)
-                   (all no-side-effects src))
+    (tuple? src) (cond
+                   (= (tuple/type src) :brackets) (all no-side-effects src)
+                   (= true (get safe-forms (src 0))) true
+                   (get safe-forms (src 0)) ((get safe-forms (src 0)) src)
+                   (get (dyn 'safe-forms) :flycheck))
     (array? src) (all no-side-effects src)
     (dictionary? src) (and (all no-side-effects (keys src))
                            (all no-side-effects (values src)))
     true))
 
-(defn- is-safe-def [x]
-  (no-side-effects (last x)))
+(varfn is-safe-def :private [x]
+  (or (filter |(= $ :flycheck) (tuple/slice x 2 -2))
+      (no-side-effects (last x))))
 
-(def- safe-forms {'defn true 'varfn true 'defn- true 'defmacro true 'defmacro- true
-                  'def is-safe-def 'var is-safe-def 'def- is-safe-def 'var- is-safe-def
-                  'defglobal is-safe-def 'varglobal is-safe-def})
+(set safe-forms {'defn true 'varfn true 'defn- true 'defmacro true 'defmacro- true
+                 'def is-safe-def 'var is-safe-def 'def- is-safe-def 'var- is-safe-def
+                 'defglobal is-safe-def 'varglobal is-safe-def
+                 #'merge-into true
+                 'fn true
+                 #'keyword true 'short-fn true
+})
 
 (def- importers {'import true 'import* true 'dofile true 'require true})
 
@@ -35,22 +47,26 @@
     (let [head (source 0)
           safe-check (or (safe-forms head)
                          (when (and (symbol? head) (string/has-prefix? "define-" head))
-                           is-safe-def))]
+                           is-safe-def)
+                         (get (dyn head) :flycheck))]
       (cond
-        # Sometimes safe form
-        (function? safe-check) (if (safe-check source) (thunk))
-        # Always safe form
-        safe-check (thunk)
+        (= 'upscope head)
+        (each f (tuple/slice source 1)
+          (flycheck-evaluator (compile f) f env where))
         # Use
         (= 'use head) (use-2 flycheck-evaluator (tuple/slice source 1))
         # Import-like form
         (importers head)
         (if (or (string/has-prefix? "." (source 1))
                 (string/has-prefix? "/" (source 1)))
-          (let [[l c] (tuple/sourcemap source)
-                newtup (tuple/setmap (tuple ;source :evaluator flycheck-evaluator) l c)]
+          (let [[line column] (tuple/sourcemap source)
+                newtup (tuple/setmap (tuple ;source :evaluator flycheck-evaluator) line column)]
             ((compile newtup env where)))
-          (thunk))))))
+          (thunk))
+        # Sometimes safe form
+        (function? safe-check) (if (safe-check source) (thunk))
+        # Always safe form
+        safe-check (thunk)))))
 
 (defn eval-buffer [str &opt filename]
   (logging/info (string/format "`eval-buffer` received filename: `%s`" (or filename "none")) [:evaluation])

@@ -95,7 +95,7 @@
                              :source filename})
            ([err fib]
              (array/push returnval {:message (string/format "runtime error: %s" err)
-                                    :location [0 0]
+                                    :location (tuple/slice ((first (debug/stack fib)) :slots) 1 3)
                                     :severity 1})))
           returnval) :e fresh-env))
   (def eval-fiber-return (resume eval-fiber))

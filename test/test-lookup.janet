@@ -127,30 +127,30 @@
     (first-where |(< (first $) 0) [[-2 :a] [-1 :b] [0 :c]])))                 
 ``)
   (test (map |[$ (string/slice sample ($ 0) ($ 1))] @[@[0 14] @[16 263] @[50 262] @[78 261] @[114 126] @[134 249] @[143 156] @[169 248] @[175 192] @[183 191] @[207 225] @[216 224] @[240 247] @[282 390] @[304 311] @[314 389] @[333 388] @[347 362] @[350 359]])
-    @[[@[0 14] "(import spork)"]
-      [@[16 263] "(defmacro first-where [pred ds]\n  (with-syms [$pred $ds]\n    ~(let [,$pred ,pred ,$ds ,ds]\n       (var ret \"\")\n       (for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))\n       ret)))"]
-      [@[50 262] "(with-syms [$pred $ds]\n    ~(let [,$pred ,pred ,$ds ,ds]\n       (var ret \"\")\n       (for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))\n       ret))"]
-      [@[78 261] "(let [,$pred ,pred ,$ds ,ds]\n       (var ret \"\")\n       (for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))\n       ret)"]
-      [@[114 126] "(var ret \"\")"]
-      [@[134 249] "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"]
-      [@[143 156] "(length ,$ds)"]
-      [@[169 248] "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"]
-      [@[175 192] "(,$pred (,$ds i))"]
-      [@[183 191] "(,$ds i)"]
-      [@[207 225] "(set ret (,$ds i))"]
-      [@[216 224] "(,$ds i)"]
-      [@[240 247] "(break)"]
-      [@[282 390] "(defn main [& args]\n  (+ 1 1)\n  (let [a 1 b 2]\n    (first-where |(< (first $) 0) [[-2 :a] [-1 :b] [0 :c]])))"]
-      [@[304 311] "(+ 1 1)"]
-      [@[314 389] "(let [a 1 b 2]\n    (first-where |(< (first $) 0) [[-2 :a] [-1 :b] [0 :c]]))"]
-      [@[333 388] "(first-where |(< (first $) 0) [[-2 :a] [-1 :b] [0 :c]])"]
-      [@[347 362] "(< (first $) 0)"]
-      [@[350 359] "(first $)"]]))
+        @[[@[0 14] "(import spork)"]
+          [@[16 263] "(defmacro first-where [pred ds]\n  (with-syms [$pred $ds]\n    ~(let [,$pred ,pred ,$ds ,ds]\n       (var ret \"\")\n       (for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))\n       ret)))"]
+          [@[50 262] "(with-syms [$pred $ds]\n    ~(let [,$pred ,pred ,$ds ,ds]\n       (var ret \"\")\n       (for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))\n       ret))"]
+          [@[78 261] "(let [,$pred ,pred ,$ds ,ds]\n       (var ret \"\")\n       (for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))\n       ret)"]
+          [@[114 126] "(var ret \"\")"]
+          [@[134 249] "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"]
+          [@[143 156] "(length ,$ds)"]
+          [@[169 248] "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"]
+          [@[175 192] "(,$pred (,$ds i))"]
+          [@[183 191] "(,$ds i)"]
+          [@[207 225] "(set ret (,$ds i))"]
+          [@[216 224] "(,$ds i)"]
+          [@[240 247] "(break)"]
+          [@[282 390] "(defn main [& args]\n  (+ 1 1)\n  (let [a 1 b 2]\n    (first-where |(< (first $) 0) [[-2 :a] [-1 :b] [0 :c]])))"]
+          [@[304 311] "(+ 1 1)"]
+          [@[314 389] "(let [a 1 b 2]\n    (first-where |(< (first $) 0) [[-2 :a] [-1 :b] [0 :c]]))"]
+          [@[333 388] "(first-where |(< (first $) 0) [[-2 :a] [-1 :b] [0 :c]])"]
+          [@[347 362] "(< (first $) 0)"]
+          [@[350 359] "(first $)"]]))
 
 (test (sexp-at {:line 2 :character 3} "(def a-startup-symbol [])\n\nsymbol\n\n(import spork/argparse)")
-  {:range @[2 3] :source ""})
+      {:range @[2 3] :source ""})
 
-(test (sexp-at {:character 15 :line 2} "(def a-startup-symbol [])\n\n(import spork/argparse)") 
+(test (sexp-at {:character 15 :line 2} "(def a-startup-symbol [])\n\n(import spork/argparse)")
       {:range @[27 50] :source "(import spork/argparse)"})
 
 (deftest "sexp-at"
@@ -174,110 +174,110 @@
     (first-where |(< (first $) 0) [[-2 :a] [-1 :b] [0 :c]])))                 
 ``)
   (test (map |[$ (sexp-at {:character $ :line 7} sample)] (range 0 37))
-    @[[0
-       {:range @[134 249]
-        :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
-      [1
-       {:range @[134 249]
-        :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
-      [2
-       {:range @[134 249]
-        :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
-      [3
-       {:range @[134 249]
-        :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
-      [4
-       {:range @[134 249]
-        :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
-      [5
-       {:range @[134 249]
-        :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
-      [6
-       {:range @[134 249]
-        :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
-      [7
-       {:range @[134 249]
-        :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
-      [8
-       {:range @[134 249]
-        :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
-      [9
-       {:range @[134 249]
-        :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
-      [10
-       {:range @[134 249]
-        :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
-      [11
-       {:range @[134 249]
-        :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
-      [12
-       {:range @[134 249]
-        :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
-      [13
-       {:range @[169 248]
-        :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]
-      [14
-       {:range @[169 248]
-        :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]
-      [15
-       {:range @[169 248]
-        :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]
-      [16
-       {:range @[169 248]
-        :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]
-      [17
-       {:range @[169 248]
-        :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]
-      [18
-       {:range @[169 248]
-        :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]
-      [19
-       {:range @[175 192]
-        :source "(,$pred (,$ds i))"}]
-      [20
-       {:range @[175 192]
-        :source "(,$pred (,$ds i))"}]
-      [21
-       {:range @[175 192]
-        :source "(,$pred (,$ds i))"}]
-      [22
-       {:range @[175 192]
-        :source "(,$pred (,$ds i))"}]
-      [23
-       {:range @[175 192]
-        :source "(,$pred (,$ds i))"}]
-      [24
-       {:range @[175 192]
-        :source "(,$pred (,$ds i))"}]
-      [25
-       {:range @[175 192]
-        :source "(,$pred (,$ds i))"}]
-      [26
-       {:range @[175 192]
-        :source "(,$pred (,$ds i))"}]
-      [27
-       {:range @[183 191] :source "(,$ds i)"}]
-      [28
-       {:range @[183 191] :source "(,$ds i)"}]
-      [29
-       {:range @[183 191] :source "(,$ds i)"}]
-      [30
-       {:range @[183 191] :source "(,$ds i)"}]
-      [31
-       {:range @[183 191] :source "(,$ds i)"}]
-      [32
-       {:range @[183 191] :source "(,$ds i)"}]
-      [33
-       {:range @[183 191] :source "(,$ds i)"}]
-      [34
-       {:range @[175 192]
-        :source "(,$pred (,$ds i))"}]
-      [35
-       {:range @[169 248]
-        :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]
-      [36
-       {:range @[169 248]
-        :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]]))
+        @[[0
+           {:range @[134 249]
+            :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
+          [1
+           {:range @[134 249]
+            :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
+          [2
+           {:range @[134 249]
+            :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
+          [3
+           {:range @[134 249]
+            :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
+          [4
+           {:range @[134 249]
+            :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
+          [5
+           {:range @[134 249]
+            :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
+          [6
+           {:range @[134 249]
+            :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
+          [7
+           {:range @[134 249]
+            :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
+          [8
+           {:range @[134 249]
+            :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
+          [9
+           {:range @[134 249]
+            :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
+          [10
+           {:range @[134 249]
+            :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
+          [11
+           {:range @[134 249]
+            :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
+          [12
+           {:range @[134 249]
+            :source "(for i 0 (length ,$ds)\n            (when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break)))"}]
+          [13
+           {:range @[169 248]
+            :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]
+          [14
+           {:range @[169 248]
+            :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]
+          [15
+           {:range @[169 248]
+            :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]
+          [16
+           {:range @[169 248]
+            :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]
+          [17
+           {:range @[169 248]
+            :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]
+          [18
+           {:range @[169 248]
+            :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]
+          [19
+           {:range @[175 192]
+            :source "(,$pred (,$ds i))"}]
+          [20
+           {:range @[175 192]
+            :source "(,$pred (,$ds i))"}]
+          [21
+           {:range @[175 192]
+            :source "(,$pred (,$ds i))"}]
+          [22
+           {:range @[175 192]
+            :source "(,$pred (,$ds i))"}]
+          [23
+           {:range @[175 192]
+            :source "(,$pred (,$ds i))"}]
+          [24
+           {:range @[175 192]
+            :source "(,$pred (,$ds i))"}]
+          [25
+           {:range @[175 192]
+            :source "(,$pred (,$ds i))"}]
+          [26
+           {:range @[175 192]
+            :source "(,$pred (,$ds i))"}]
+          [27
+           {:range @[183 191] :source "(,$ds i)"}]
+          [28
+           {:range @[183 191] :source "(,$ds i)"}]
+          [29
+           {:range @[183 191] :source "(,$ds i)"}]
+          [30
+           {:range @[183 191] :source "(,$ds i)"}]
+          [31
+           {:range @[183 191] :source "(,$ds i)"}]
+          [32
+           {:range @[183 191] :source "(,$ds i)"}]
+          [33
+           {:range @[183 191] :source "(,$ds i)"}]
+          [34
+           {:range @[175 192]
+            :source "(,$pred (,$ds i))"}]
+          [35
+           {:range @[169 248]
+            :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]
+          [36
+           {:range @[169 248]
+            :source "(when (,$pred (,$ds i))\n              (set ret (,$ds i))\n              (break))"}]]))
 
 (deftest "to-index"
   (def sample
@@ -340,4 +340,3 @@
   (test (word-at {:line 0 :character 1} "[hello]") {:range [1 6] :word "hello"})
   (test (word-at {:line 0 :character 1} "{hello}") {:range [1 6] :word "hello"})
   (test (word-at {:line 0 :character 1} "\"hello\"") {:range [1 6] :word "hello"}))
-

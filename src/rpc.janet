@@ -3,7 +3,7 @@
 (import ./logging)
 
 (defn success-response [id result &keys opts]
-  (def rpc 
+  (def rpc
     (if (opts :notify)
       (merge {:jsonrpc "2.0"}
              result)

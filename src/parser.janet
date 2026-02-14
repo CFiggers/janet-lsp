@@ -205,12 +205,12 @@
 
 (defn- collect-symbols
   [heads]
-  (let [parameters    (catseq [head :in heads] (get-value-for-tag :parameters head))
-        variables     (catseq [head :in heads] (get-defined-for-tag :variables head))
-        fn-names      (catseq [head :in heads] (get-fn-names head))
+  (let [parameters (catseq [head :in heads] (get-value-for-tag :parameters head))
+        variables (catseq [head :in heads] (get-defined-for-tag :variables head))
+        fn-names (catseq [head :in heads] (get-fn-names head))
         pars-and-vars (array/concat parameters variables)
-        lsp-symbols   (seq [p-or-v :in pars-and-vars] {:kind 12 :label (symbol (p-or-v :value))})
-        lsp-fn-names  (seq [f :in fn-names] {:kind 3 :label (symbol (f :value))})]
+        lsp-symbols (seq [p-or-v :in pars-and-vars] {:kind 12 :label (symbol (p-or-v :value))})
+        lsp-fn-names (seq [f :in fn-names] {:kind 3 :label (symbol (f :value))})]
     (array/concat lsp-symbols lsp-fn-names)))
 
 (varfn find-symbols-in-node [])

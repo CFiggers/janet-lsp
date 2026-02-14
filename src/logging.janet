@@ -17,7 +17,7 @@
     (print (:print (dyn :client) output)))
 
   (when (dyn :debug)
-    
+
     # Ensure log file exists
     (unless (os/stat "janetlsp.log")
       (spit "janetlsp.log" ""))
@@ -43,17 +43,17 @@
             (spit "janetlsp.log" ""))
           (spit "janetlsp.log" (string output "\n") :a))
         ([e]
-         (file/write stderr (string/format "error while trying to write to log file: %q\n" e)))))
+          (file/write stderr (string/format "error while trying to write to log file: %q\n" e)))))
 
     # Log to console, only specified categories and if this log's level is >= the specified level
     (when (and
             # Category Match
-           (or (empty? (dyn :log-categories)) # No log categories are specified
-               (empty? categories) # OR, this log doesn't specify a categories (default to sending it)
-               (any? (map |(has-value? (dyn :log-categories) $) categories))) # Any of this log's categories is in the target categories
+            (or (empty? (dyn :log-categories)) # No log categories are specified
+                (empty? categories) # OR, this log doesn't specify a categories (default to sending it)
+                (any? (map |(has-value? (dyn :log-categories) $) categories))) # Any of this log's categories is in the target categories
             # Level Match
-           (or (nil? level) # There is no level specified on this log
-               (<= level (dyn :log-level)))) # OR, this log's level is <= the specified level
+            (or (nil? level) # There is no level specified on this log
+                (<= level (dyn :log-level)))) # OR, this log's level is <= the specified level
 
       (comment (eprintf "Debug is: %m" (dyn :debug))
 

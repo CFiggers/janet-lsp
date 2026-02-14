@@ -44,12 +44,13 @@
 
     (each res diagnostics
       (match res
-        {:location [line col] :message message}
+        {:location [line col] :message message :severity severity}
         (array/push items
                     {:range
                      {:start {:line (max 0 (dec line)) :character col}
                       :end {:line (max 0 (dec line)) :character col}}
-                     :message message})))
+                     :message message
+                     :severity severity})))
 
     (logging/info (string/format "`run-diagnostics` is returning these errors: %m" items) [:evaluation])
     (logging/dbg (string/format "`run-diagnostics` is returning this eval-context: %m" env) [:evaluation])

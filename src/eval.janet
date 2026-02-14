@@ -80,16 +80,23 @@
           (try (run-context {:chunks chunks
                              :on-compile-error (fn compile-error [msg errf where line col]
                                                  (array/push returnval {:message msg
-                                                                        :location [line col]}))
+                                                                        :location [line col]
+                                                                        :severity 1}))
+                             :on-compile-warning (fn compile-warning [msg errf where line col]
+                                                   (array/push returnval {:message (string/format "compile warning: %s" msg)
+                                                                          :location [line col]
+                                                                          :severity 2}))
                              :on-parse-error (fn parse-error [p x]
                                                (array/push returnval {:message (parser/error p)
-                                                                      :location (parser/where p)}))
+                                                                      :location (parser/where p)
+                                                                      :severity 1}))
                              :evaluator flycheck-evaluator
                              :fiber-flags :i
                              :source filename})
                ([err]
                 (array/push returnval {:message err
-                                       :location [0 0]})))
+                                    :location [0 0]
+                                    :severity 1})))
           returnval) :e fresh-env))
   (def eval-fiber-return (resume eval-fiber))
   (logging/dbg (string/format "`eval-buffer` is returning: %m" eval-fiber-return) [:evaluation])

@@ -1,10 +1,12 @@
 (import ../libs/jayson :prefix "json/")
 (import ../libs/fmt)
+(import ../libs/utils)
 (import ./doc)
 (import ./eval)
 (import ./logging)
 (import ./lookup)
 (import ./rpc)
+(import ./parser)
 
 (import cmd)
 (import spork/argparse)
@@ -157,24 +159,28 @@
        (,logging/dbg (string/format "binding-to-lsp-item: s is %m" s) [:completion] 3)
        {:label ,$name :kind
         (case (type s)
-          :symbol    12 :boolean   6
-          :function  3  :cfunction 3
-          :string    6  :buffer    6
-          :number    6  :keyword   6
-          :core/file 17 :core/peg  6
-          :struct    6  :table     6
-          :tuple     6  :array     6
-          :fiber     6  :nil       6)})))
+          :symbol 12 :boolean 6
+          :function 3 :cfunction 3
+          :string 6 :buffer 6
+          :number 6 :keyword 6
+          :core/file 17 :core/peg 6
+          :struct 6 :table 6
+          :tuple 6 :array 6
+          :fiber 6 :nil 6)})))
 
 (defn on-completion [state params]
   (let [uri (first (peg/match uri-percent-encoding-peg
                               (get-in params ["textDocument" "uri"])))
         eval-env (get-in state [:documents uri :eval-env])
+        content (get-in state [:documents uri :content])
+        location (utils/get-location params)
+        local-bindings (parser/get-syms-at-loc location content)
         bindings (seq [bind :in (all-bindings eval-env)]
                    (binding-to-lsp-item bind eval-env))
+        deduped-bindings (utils/concat-dedup-by-label local-bindings bindings)
         message {:isIncomplete true
-                 :items bindings}]
-    (logging/message message [:completion])
+                 :items deduped-bindings}]
+    (logging/message message [:completion] 1)
     [:ok state message]))
 
 (defn on-completion-item-resolve [state params]
@@ -211,7 +217,7 @@
                               :value hover-text}
                    :range {:start {:line line :character start}
                            :end {:line line :character end}}}
-		  :json/null)]
+                  :json/null)]
     (logging/message message [:hover])
     [:ok state message]))
 
@@ -249,7 +255,7 @@
   (let [message {:capabilities {:completionProvider {:resolveProvider true}
                                 :textDocumentSync {:openClose true
                                                    :change 1 # send the Full document https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentSyncKind
-                                                   }
+}
                                 :diagnosticProvider {:interFileDependencies true
                                                      :workspaceDiagnostics false}
                                 :hoverProvider true
@@ -288,8 +294,8 @@
   ``
   [state params]
   (let [message {:serverInfo {:name "janet-lsp"
-                               :version version
-                               :commit commit}}]
+                              :version version
+                              :commit commit}}]
     (logging/message message [:info])
     [:ok state message]))
 
@@ -352,7 +358,7 @@
   (let [message {:message "Enabled :debug"}]
     (setdyn :debug true)
     (try (spit "janetlsp.log" "")
-         ([_] (logging/err "Tried to write to janetlsp.log, but couldn't" [:core])))
+      ([_] (logging/err "Tried to write to janetlsp.log, but couldn't" [:core])))
     (logging/message message [:debug])
     [:ok state message]))
 
@@ -371,7 +377,7 @@
     (setdyn kind new-level)
     [:noresponse state]))
 
-(defmacro on-set-log-level [state params] 
+(defmacro on-set-log-level [state params]
   ~(,do-set-log-level ,state ,params :log-level))
 
 (defmacro on-set-file-log-level [state params]

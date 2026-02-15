@@ -15,7 +15,7 @@
 
 (use judge)
 
-(def version "0.0.11")
+(def version "0.0.12")
 (def commit
   (with [proc (os/spawn ["git" "rev-parse" "--short" "HEAD"] :xp {:out :pipe})]
     (let [[out] (ev/gather
@@ -44,12 +44,13 @@
 
     (each res diagnostics
       (match res
-        {:location [line col] :message message}
+        {:location [line col] :message message :severity severity}
         (array/push items
                     {:range
                      {:start {:line (max 0 (dec line)) :character col}
                       :end {:line (max 0 (dec line)) :character col}}
-                     :message message})))
+                     :message message
+                     :severity severity})))
 
     (logging/info (string/format "`run-diagnostics` is returning these errors: %m" items) [:evaluation])
     (logging/dbg (string/format "`run-diagnostics` is returning this eval-context: %m" env) [:evaluation])
@@ -159,14 +160,14 @@
        (,logging/dbg (string/format "binding-to-lsp-item: s is %m" s) [:completion] 3)
        {:label ,$name :kind
         (case (type s)
-          :symbol    12 :boolean   6
-          :function  3  :cfunction 3
-          :string    6  :buffer    6
-          :number    6  :keyword   6
-          :core/file 17 :core/peg  6
-          :struct    6  :table     6
-          :tuple     6  :array     6
-          :fiber     6  :nil       6)})))
+          :symbol 12 :boolean 6
+          :function 3 :cfunction 3
+          :string 6 :buffer 6
+          :number 6 :keyword 6
+          :core/file 17 :core/peg 6
+          :struct 6 :table 6
+          :tuple 6 :array 6
+          :fiber 6 :nil 6)})))
 
 (defn on-completion [state params]
   (let [uri (first (peg/match uri-percent-encoding-peg
@@ -180,7 +181,7 @@
         deduped-bindings (utils/concat-dedup-by-label local-bindings bindings)
         message {:isIncomplete true
                  :items deduped-bindings}]
-    (logging/message message [:completion])
+    (logging/message message [:completion] 1)
     [:ok state message]))
 
 (defn on-completion-item-resolve [state params]
@@ -217,7 +218,7 @@
                               :value hover-text}
                    :range {:start {:line line :character start}
                            :end {:line line :character end}}}
-		  :json/null)]
+                  :json/null)]
     (logging/message message [:hover])
     [:ok state message]))
 
@@ -255,7 +256,7 @@
   (let [message {:capabilities {:completionProvider {:resolveProvider true}
                                 :textDocumentSync {:openClose true
                                                    :change 1 # send the Full document https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentSyncKind
-                                                   }
+}
                                 :diagnosticProvider {:interFileDependencies true
                                                      :workspaceDiagnostics false}
                                 :hoverProvider true
@@ -294,8 +295,8 @@
   ``
   [state params]
   (let [message {:serverInfo {:name "janet-lsp"
-                               :version version
-                               :commit commit}}]
+                              :version version
+                              :commit commit}}]
     (logging/message message [:info])
     [:ok state message]))
 
@@ -358,7 +359,7 @@
   (let [message {:message "Enabled :debug"}]
     (setdyn :debug true)
     (try (spit "janetlsp.log" "")
-         ([_] (logging/err "Tried to write to janetlsp.log, but couldn't" [:core])))
+      ([_] (logging/err "Tried to write to janetlsp.log, but couldn't" [:core])))
     (logging/message message [:debug])
     [:ok state message]))
 
@@ -377,7 +378,7 @@
     (setdyn kind new-level)
     [:noresponse state]))
 
-(defmacro on-set-log-level [state params] 
+(defmacro on-set-log-level [state params]
   ~(,do-set-log-level ,state ,params :log-level))
 
 (defmacro on-set-file-log-level [state params]

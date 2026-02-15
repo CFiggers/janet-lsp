@@ -43,7 +43,7 @@
 (defn sexp-at [location source]
   (let [{:character character-pos :line line-pos} location
         idx (+ character-pos (sum (map (comp inc length) (array/slice (string/split "\n" source) 0 line-pos))))
-        s-exps (or (peg/match sexp-peg source) @[])] 
+        s-exps (or (peg/match sexp-peg source) @[])]
     (if-let [sexp-range (last (filter |(< ($ 0) idx ($ 1)) s-exps))]
       {:source (string/slice source ;sexp-range) :range sexp-range}
       {:source "" :range @[line-pos character-pos]})))

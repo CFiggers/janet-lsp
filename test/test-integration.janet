@@ -132,7 +132,7 @@
     @{:id 350
       :jsonrpc "2.0"
       :result @{:contents @{:kind "markdown"
-                            :value "macro  \nboot.janet on line 3192, column 1\n\n```janet\n(use & modules)\n```\n\nSimilar to `import`, but imported bindings are not prefixed with a module\nidentifier. Can also import multiple modules in one shot."}
+                            :value "macro  \nboot.janet on line 3245, column 1\n\n```janet\n(use & modules)\n```\n\nSimilar to `import`, but imported bindings are not prefixed with a module\nidentifier. Can also import multiple modules in one shot."}
                 :range @{:end @{:character 4 :line 0}
                          :start @{:character 1 :line 0}}}}))
 
@@ -154,7 +154,7 @@
     @{:id 6
       :jsonrpc "2.0"
       :result @{:isIncomplete true
-                :items "{{740 items here}}"}}))
+                :items "{{749 items here}}"}}))
 
 (deftest: with-process-open "test completionItem/resolve" [context]
   (write-output context (slurp "./test/resources/textDocument_completion_rpc.json"))
@@ -165,14 +165,14 @@
     @{:id 6
       :jsonrpc "2.0"
       :result @{:isIncomplete true
-                :items "{{740 items here}}"}})
-  
+                :items "{{749 items here}}"}})
+
   (write-output context (slurp "./test/resources/completionItem_resolve_rpc.json"))
   (set got (ev/read (context :from-lsp) 2048))
-  
+
   (test (jayson/decode (last (string/split "\r\n" got)) true)
     @{:id 31
       :jsonrpc "2.0"
       :result @{:documentation @{:kind "markdown"
-                                 :value "cfunction  \nsrc/core/corelib.c on line 326, column 1\n\n```janet\n(string & xs)\n```\n\nCreates a string by concatenating the elements of `xs` together. If an element is not a byte sequence, it is converted to bytes via `describe`. Returns the new string."}
+                                 :value "cfunction  \nsrc/core/corelib.c on line 330, column 1\n\n```janet\n(string & xs)\n```\n\nCreates a string by concatenating the elements of `xs` together. If an element is not a byte sequence, it is converted to bytes via `describe`. Returns the new string."}
                 :label "string"}}))

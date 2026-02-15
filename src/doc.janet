@@ -21,7 +21,7 @@
               (let [parts (string/split "\n" d)]
                 (if (every? ((juxt |(string/has-prefix? "(" $)
                                    |(string/has-suffix? ")" $))
-                             (parts 0)))
+                              (parts 0)))
                   (string/join (-> parts
                                    (array/insert 1 "```")
                                    (array/insert 0 "```janet")) "\n")
@@ -31,21 +31,13 @@
 (deftest "test make-module-entry: string/trim"
   (test (dyn (symbol "string/trim"))
     @{:doc "(string/trim str &opt set)\n\nTrim leading and trailing whitespace from a byte sequence. If the argument `set` is provided, consider only characters in `set` to be whitespace."
-      :source-map ["src/core/string.c" 602 1]
+      :source-map ["src/core/string.c" 605 1]
       :value @string/trim})
-  (test (make-module-entry (dyn (symbol "string/trim"))) 
-        ````cfunction  
-        src/core/string.c on line 602, column 1
-        
-        ```janet
-        (string/trim str &opt set)
-        ```
-        
-        Trim leading and trailing whitespace from a byte sequence. If the argument `set` is provided, consider only characters in `set` to be whitespace.
-        ````)
+  (test (make-module-entry (dyn (symbol "string/trim")))
+    "cfunction  \nsrc/core/string.c on line 605, column 1\n\n```janet\n(string/trim str &opt set)\n```\n\nTrim leading and trailing whitespace from a byte sequence. If the argument `set` is provided, consider only characters in `set` to be whitespace.")
   (test-stdout (print (make-module-entry (dyn (symbol "string/trim")))) ````
     cfunction  
-    src/core/string.c on line 602, column 1
+    src/core/string.c on line 605, column 1
     
     ```janet
     (string/trim str &opt set)
@@ -54,11 +46,11 @@
     Trim leading and trailing whitespace from a byte sequence. If the argument `set` is provided, consider only characters in `set` to be whitespace.
   ````))
 
-(deftest "test make-module-entry: length" 
+(deftest "test make-module-entry: length"
   (test (dyn (symbol "length"))
-    @{:doc "(length ds)\n\nReturns the length or count of a data structure in constant time as an integer. For structs and tables, returns the number of key-value pairs in the data structure."
-      :value @length})
-  (test (make-module-entry (dyn (symbol "length"))) 
+        @{:doc "(length ds)\n\nReturns the length or count of a data structure in constant time as an integer. For structs and tables, returns the number of key-value pairs in the data structure."
+          :value @length})
+  (test (make-module-entry (dyn (symbol "length")))
         ````function
         
         ```janet
@@ -158,17 +150,9 @@
           (logging/info (string/format "symbol %m not found." sym) [:hover]))))))
 
 (deftest "testing my-doc*: string/trim"
-  (def env (make-env root-env)) 
-  (test (my-doc* 'string/trim env) 
-        ````cfunction  
-        src/core/string.c on line 602, column 1
-        
-        ```janet
-        (string/trim str &opt set)
-        ```
-        
-        Trim leading and trailing whitespace from a byte sequence. If the argument `set` is provided, consider only characters in `set` to be whitespace.
-        ````))
+  (def env (make-env root-env))
+  (test (my-doc* 'string/trim env)
+    "cfunction  \nsrc/core/string.c on line 605, column 1\n\n```janet\n(string/trim str &opt set)\n```\n\nTrim leading and trailing whitespace from a byte sequence. If the argument `set` is provided, consider only characters in `set` to be whitespace."))
 
 (deftest "testing my-doc*: length"
   (def env (make-env root-env))
@@ -195,12 +179,12 @@
 (deftest "testing my-doc*: test-def"
   (def env (make-env root-env))
   (test (my-doc* 'test-def env)
-    nil))
+        nil))
 
 (deftest "testing my-doc*: wackythingthatdoesntexist"
   (def env (make-env root-env))
   (test (my-doc* (symbol "wackythingthatdoesntexist") env)
-    nil))
+        nil))
 
 (deftest "testing my-doc*: module entry"
   (def env (make-env root-env))
@@ -212,7 +196,7 @@
 
   (test-stdout (print (my-doc* (symbol "spork/path") env)) `
     module (source)  
-    /usr/local/lib/janet/spork/path.janet
+    /home/deck/.local/share/janet/lib/spork/path.janet
     
     No documentation found.
     

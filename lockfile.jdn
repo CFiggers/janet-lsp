@@ -1,0 +1,5 @@
+@[{:url "https://github.com/CFiggers/jayson.git" :tag "4f54041617340c8ff99bc1e6b285b720184965e2" :type :git}
+  {:url "https://github.com/cfiggers/cmd" :tag "b0a34d6e854578bd672d43303e80b9777af08b42" :type :git}
+  {:url "https://github.com/cfiggers/judge" :tag "1d329cb3a7384c3ff0f6232e60d81aa9db3a5440" :type :git}
+  {:url "https://github.com/janet-lang/jpm.git" :tag "907daf191ad3f1cf7e5190ec4f44eb29cd54ba21" :type :git}
+  {:url "https://github.com/janet-lang/spork.git" :tag "dbfc90d4c86fa54a74c56d406517605e49569a8b" :type :git}]

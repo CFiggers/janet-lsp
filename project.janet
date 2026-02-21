@@ -4,8 +4,8 @@
   :version "0.0.12"
   :dependencies ["https://github.com/janet-lang/spork.git"
                  "https://github.com/CFiggers/jayson.git"
-                 "https://github.com/ianthehenry/judge.git"
-                 "https://github.com/CFiggers/cmd.git"])
+                 "https://github.com/CFiggers/cmd.git" 
+                 "https://github.com/CFiggers/judge.git" ])
 
 # (def cflags
 #   (case (os/which)

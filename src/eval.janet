@@ -28,7 +28,9 @@
                  'def is-safe-def 'var is-safe-def 'def- is-safe-def 'var- is-safe-def
                  'defglobal is-safe-def 'varglobal is-safe-def
                  #'merge-into true
-                 'fn true
+                 'fn true 'ffi/context true 'ffi/defbind true
+                 'ffi/defbind-alias true 'ffi/lookup true
+                 'ffi/signature true 'ffi/native true
                  #'keyword true 'short-fn true
 })
 

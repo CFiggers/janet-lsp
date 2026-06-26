@@ -492,7 +492,7 @@
   (setdyn :unique-paths (find-unique-paths (find-all-module-files (os/cwd) (not ((dyn :opts) :dont-search-jpm-tree)))))
 
   (when (os/stat "./.janet-lsp/startup.janet")
-    (merge-into root-env (dofile "./.janet-lsp/startup.janet")))
+    (merge-into root-env (dofile "./.janet-lsp/startup.janet" :env (curenv))))
 
   (message-loop :state @{:documents @{}}))
 

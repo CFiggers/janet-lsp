@@ -3,7 +3,7 @@
 
 (varfn is-safe-def :private [])
 
-(var- safe-forms {})
+(var safe-forms @{})
 
 (defn- no-side-effects
   `Check if form may have side effects. If returns true, then the src
@@ -24,15 +24,18 @@
   (or (filter |(= $ :flycheck) (tuple/slice x 2 -2))
       (no-side-effects (last x))))
 
-(set safe-forms {'defn true 'varfn true 'defn- true 'defmacro true 'defmacro- true
-                 'def is-safe-def 'var is-safe-def 'def- is-safe-def 'var- is-safe-def
-                 'defglobal is-safe-def 'varglobal is-safe-def
-                 #'merge-into true
-                 'fn true 'ffi/context true 'ffi/defbind true
-                 'ffi/defbind-alias true 'ffi/lookup true
-                 'ffi/signature true 'ffi/native true
-                 #'keyword true 'short-fn true
+(set safe-forms @{'defn true 'varfn true 'defn- true 'defmacro true 'defmacro- true
+                  'def is-safe-def 'var is-safe-def 'def- is-safe-def 'var- is-safe-def
+                  'defglobal is-safe-def 'varglobal is-safe-def
+                  #'merge-into true
+                  'fn true 'ffi/context true 'ffi/defbind true
+                  'ffi/defbind-alias true 'ffi/lookup true
+                  'ffi/signature true 'ffi/native true
+                  #'keyword true 'short-fn true
 })
+
+(defn update-safe-forms [dict]
+  (set safe-forms (merge safe-forms dict)))
 
 (def- importers {'import true 'import* true 'dofile true 'require true})
 

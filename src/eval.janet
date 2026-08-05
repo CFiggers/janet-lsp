@@ -91,8 +91,11 @@
   (each path (or (dyn :unique-paths) @[])
     (cond
       (string/has-suffix? ".janet" path) (array/push ((fresh-env 'module/paths) :value) [path :source])
+      (string/has-suffix? ".jimage" path) (array/push ((fresh-env 'module/paths) :value) [path :jimage])
       (string/has-suffix? ".so" path) (array/push ((fresh-env 'module/paths) :value) [path :native])
-      (string/has-suffix? ".jimage" path) (array/push ((fresh-env 'module/paths) :value) [path :jimage])))
+      (string/has-suffix? ".dll" path) (array/push ((fresh-env 'module/paths) :value) [path :native])
+      (string/has-suffix? ".dylib" path) (array/push ((fresh-env 'module/paths) :value) [path :native])
+      (error "Should Be Unreachable? Encountered an unexpected (dyn :unique-paths) entry")))
 
   (def eval-fiber
     (fiber/new

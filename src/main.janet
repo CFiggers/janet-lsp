@@ -464,7 +464,9 @@
     :file (when (or explicit (not= (path/basename path) "project.janet"))
             (when (or (string/has-suffix? ".janet" path)
                       (string/has-suffix? ".jimage" path)
-                      (string/has-suffix? ".so" path))
+                      (string/has-suffix? ".so" path)
+                      (string/has-suffix? ".dll" path)
+                      (string/has-suffix? ".dylib" path))
               (array/push results path))))
   results)
 

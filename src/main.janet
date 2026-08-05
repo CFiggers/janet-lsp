@@ -453,16 +453,14 @@
                                    (message-loop :state new-state))
       [:exit] (do (file/flush stdout) (ev/sleep 0.1) (os/exit 0)))))
 
-(defn find-all-module-files [path &opt search-jpm-tree explicit results]
+(defn find-all-module-files [path &opt explicit results]
   (default explicit true)
   (default results @[])
   (case (os/stat path :mode)
-    :directory (when (or explicit
-                         search-jpm-tree
-                         (not= (path/basename path) "jpm_tree"))
+    :directory (when (or explicit (not= (path/basename path) "jpm_tree"))
                  (each entry (os/dir path)
-                   (find-all-module-files (path/join path entry)
-                                          search-jpm-tree false results)))
+                   (find-all-module-files
+                     (path/join path entry) false results)))
     :file (when (or explicit (not= (path/basename path) "project.janet"))
             (when (or (string/has-suffix? ".janet" path)
                       (string/has-suffix? ".jimage" path)
@@ -490,10 +488,18 @@
       ([_] (logging/err "Tried to write to janetlsp.log txt, but couldn't" [:core]))))
 
   (merge-module root-env jpm-defs nil true)
-  (setdyn :unique-paths (find-unique-paths (find-all-module-files (os/cwd) (not ((dyn :opts) :dont-search-jpm-tree)))))
+  (setdyn :unique-paths (find-unique-paths (find-all-module-files (os/cwd))))
+
+  (when (and (os/stat "jpm_tree")
+             (= ((os/stat "jpm_tree") :mode) :directory)
+             (not ((dyn :opts) :dont-search-jpm-tree)))
+    (module/add-syspath "jpm_tree/lib"))
 
   (when (os/stat "./.janet-lsp/startup.janet")
     (merge-into root-env (dofile "./.janet-lsp/startup.janet" :env (curenv))))
+
+  # (when (dyn :user-flycheck-safe-forms)
+  #   (eval/update-safe-forms (dyn :user-flycheck-safe-forms)))
 
   (message-loop :state @{:documents @{}}))
 

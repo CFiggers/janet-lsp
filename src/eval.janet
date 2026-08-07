@@ -31,6 +31,7 @@
                   'fn true 'ffi/context true 'ffi/defbind true
                   'ffi/defbind-alias true 'ffi/lookup true
                   'ffi/signature true 'ffi/native true
+                  'ffi/struct true
                   #'keyword true 'short-fn true
 })
 

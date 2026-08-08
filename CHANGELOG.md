@@ -2,7 +2,24 @@
 All notable changes to this project will be documented in this file.
 Format for entires is <version-string> - release date.
 
-## 0.0.11 - 2026-02-14
+## 0.0.13 - 2026-08-08
+
+- Flychecking 
+  - Safe `ffi/*` forms now evaluate during flychecking 
+- Startup.janet 
+  - Now pass `(curenv)` to `(dofile)` when evaluating startup.janet 
+    - Makes introspecting the LSP's runtime environment table much more straightforward
+    - Now export all janet-lsp submodules from `main.janet` so that `startup.janet` can directly invoke functions from modules like `eval`
+    - Created `eval/update-safe-forms` to enable declaring forms safe for flychecking *without* `:flycheck` metadata
+- Module loading 
+  - Now handle jpm_tree libs by adding `jpm_tree/lib` to syspaths when present
+  - Bugfix 
+    - Was only seeking for "\*.so" files when identifying and handling module files; now search also for "\*.dll" and "\*.dylib" as well
+- Project 
+  - Added lockfile.jdn to support reproducible build systems 
+  - Reorganized tests
+
+## 0.0.12 - 2026-02-14
 
 - Logging 
   - Clarify logging levels using more standard labeling (debug, info, warn, error, fatal, unknown)
@@ -15,6 +32,26 @@ Format for entires is <version-string> - release date.
     - User-defined functions with `:flycheck` metadata tags will be fully executed by LSP (!)
 - Misc
   - Apply `spork/fmt` throughout
+
+## 0.0.11 - 2024-09-04 
+
+- Bugfixes
+  - Several fixes of `word-at`
+    - Offset in word-at causing hover to fail
+    - Check for additional word terminals in word-at by @seamusriordian
+  - Several changes to better follow the LSP spec
+    - Fix return 'null' when hover has nothing to say by @nbonfils
+    - Correct `:server-info` to `:serverInfo`
+- Completion
+  - Add in local variable completion and more complete AST by @seamusriordan
+- Development/Misc
+  - Logging
+    - Clarify logging levels using more standard labeling (debug, info, warn, error, fatal, unknown)
+  - Testing
+    - Expanded integration testing
+    - Updating snapshot testing
+  - Formatting
+    - Applied spork/fmt throughout for formatting improvements
 
 ## 0.0.10 - 2024-12-22
 

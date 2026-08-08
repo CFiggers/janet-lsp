@@ -16,7 +16,7 @@
 
 (use judge)
 
-(def version "0.0.12")
+(def version "0.0.13")
 (def commit
   (with [proc (os/spawn ["git" "rev-parse" "--short" "HEAD"] :xp {:out :pipe})]
     (let [[out] (ev/gather

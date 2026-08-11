@@ -254,10 +254,10 @@
     (setdyn :push-diagnostics false)
     (setdyn :push-diagnostics true))
 
-  (let [message {:capabilities {:completionProvider {:resolveProvider true}
+  (let [message {:capabilities {:completionProvider {:resolveProvider true
+                                                     :triggerCharacters ["/"]}
                                 :textDocumentSync {:openClose true
-                                                   :change 1 # send the Full document https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentSyncKind
-}
+                                                   :change 1} # send the Full document https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentSyncKind
                                 :diagnosticProvider {:interFileDependencies true
                                                      :workspaceDiagnostics false}
                                 :hoverProvider true
